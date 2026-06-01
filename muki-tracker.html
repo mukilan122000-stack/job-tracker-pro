@@ -1436,11 +1436,11 @@ tr:hover td{background:rgba(99,102,241,.03);}
 }
 
 /* AiMooki brand class — applied everywhere the name appears */
-.am{font-family:'Syne',sans-serif;font-weight:800;background:linear-gradient(90deg,#a78bfa,#38bdf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;display:inline;}
-.am-spark{width:6px;height:6px;border-radius:50%;background:linear-gradient(135deg,#a78bfa,#38bdf8);display:inline-block;margin-right:3px;vertical-align:middle;box-shadow:0 0 6px rgba(167,139,250,.6);}
+.am{font-family:'Syne',sans-serif;font-weight:800;background:linear-gradient(90deg,#a78bfa,#38bdf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;display:inline;filter:drop-shadow(0 0 8px rgba(167,139,250,.4));}
+.am-spark{width:6px;height:6px;border-radius:50%;background:linear-gradient(135deg,#a78bfa,#38bdf8);display:inline-block;margin-right:3px;vertical-align:middle;box-shadow:0 0 8px rgba(167,139,250,.7);}
 /* CRS arc animation */
 #crsArc{transition:stroke-dashoffset 1s cubic-bezier(.4,0,.2,1);}
-</style>
+/* Journal textarea */
 .narea{background:#07071a;border:1px solid rgba(255,255,255,.13);border-radius:8px;padding:12px;color:#e8e8ff;font-family:'DM Mono',monospace;font-size:11px;width:100%;min-height:140px;resize:vertical;outline:none;line-height:1.9;}
 .narea:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(99,102,241,.07);}
 .narea::placeholder{color:rgba(255,255,255,.15);}
@@ -1507,7 +1507,7 @@ tr:hover td{background:rgba(99,102,241,.03);}
     <!-- STEP 3: Resume Upload + Generate -->
     <div class="ob-step" id="ob-step3">
       <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;margin-bottom:4px;">Upload Your Resume</div>
-      <div style="font-size:12px;color:var(--muted2);margin-bottom:20px;line-height:1.7;">Used for AI job scoring, interview prep, and auto-apply. <span style="color:var(--accent);">AiMooki will score your resume before generating your plan.</span></div>
+      <div style="font-size:12px;color:var(--muted2);margin-bottom:20px;line-height:1.7;">Used for AI job scoring, interview prep, and auto-apply. <span class="am">AiMooki</span> will score your resume before generating your plan.</div>
       <div class="ob-err" id="ob-resume-err"></div>
       <div class="ob-upload-area" id="ob-upload-area" onclick="document.getElementById('ob-resume-file').click()">
         <div style="font-size:28px;margin-bottom:8px;">📄</div>
@@ -1519,7 +1519,7 @@ tr:hover td{background:rgba(99,102,241,.03);}
       <div id="resumeHealthResult" style="display:none;margin-top:14px;background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.15);border-radius:10px;padding:14px;">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
           <div style="width:7px;height:7px;border-radius:50%;background:linear-gradient(135deg,#a78bfa,#38bdf8);box-shadow:0 0 6px rgba(167,139,250,.6);"></div>
-          <span style="font-family:'Syne',sans-serif;font-weight:700;font-size:12px;background:linear-gradient(90deg,#a78bfa,#38bdf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">AiMooki</span>
+          <span class="am">AiMooki</span>
           <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);">Resume Health Check</span>
         </div>
         <div id="resumeHealthBody" style="font-size:11px;color:var(--muted2);line-height:1.8;"></div>
@@ -1548,7 +1548,7 @@ tr:hover td{background:rgba(99,102,241,.03);}
   <div>
     <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px;">
       <div style="width:7px;height:7px;border-radius:50%;background:linear-gradient(135deg,#a78bfa,#38bdf8);flex-shrink:0;box-shadow:0 0 8px rgba(167,139,250,.7);"></div>
-      <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:14px;background:linear-gradient(90deg,#a78bfa,#38bdf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">AiMooki</span>
+      <span class="am">AiMooki</span>
       <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:.1em;">· 30-DAY SPRINT ACTIVE</span>
     </div>
     <h1 style="font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(22px,4vw,32px);line-height:1.05;margin:0 0 6px;">Land a Job in <em style="font-style:normal;background:linear-gradient(90deg,#a78bfa,#38bdf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 10px rgba(167,139,250,.4));">30 Days</em></h1>
@@ -1584,8 +1584,7 @@ tr:hover td{background:rgba(99,102,241,.03);}
     </div>
   </div>
 </div>
-  </div>
-</div>
+
 <div class="setup-card" id="setup-card">
   <h3 style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:var(--accent);margin-bottom:8px;">⚙️ Set Your Sprint Start Date</h3>
   <p style="font-size:11px;color:var(--muted2);margin-bottom:10px;">Set once — day counter auto-updates every morning.</p>
@@ -1617,7 +1616,7 @@ tr:hover td{background:rgba(99,102,241,.03);}
   <div id="week3Support" style="display:none;background:rgba(167,139,250,.06);border:1px solid rgba(167,139,250,.2);border-radius:12px;padding:14px 16px;margin-bottom:14px;">
     <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px;">
       <div style="width:6px;height:6px;border-radius:50%;background:linear-gradient(135deg,#a78bfa,#38bdf8);box-shadow:0 0 6px rgba(167,139,250,.6);"></div>
-      <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:12px;background:linear-gradient(90deg,#a78bfa,#38bdf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">AiMooki</span>
+      <span class="am">AiMooki</span>
       <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);">Week 3 check-in</span>
     </div>
     <div style="font-size:12px;color:var(--text);font-weight:600;margin-bottom:4px;">Week 3 is the hardest. Most people quit here. You haven't.</div>
@@ -1799,7 +1798,7 @@ tr:hover td{background:rgba(99,102,241,.03);}
 <div id="pane-analyser" class="pane">
   <div style="margin-bottom:14px;">
     <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;margin-bottom:4px;">🎯 Resume vs JD Analyser</div>
-    <div style="font-size:12px;color:var(--muted2);line-height:1.7;">Paste your resume and a job description — AiMooki analyses the match, finds gaps, and generates interview questions.</div>
+    <div style="font-size:12px;color:var(--muted2);line-height:1.7;">Paste your resume and a job description — <span class="am">AiMooki</span> analyses the match, finds gaps, and generates interview questions.</div>
   </div>
   <!-- Resume loaded indicator - show/hide based on onboarding -->
   <div class="resume-indicator" id="resume-indicator" style="display:none;">
@@ -1976,7 +1975,7 @@ tr:hover td{background:rgba(99,102,241,.03);}
 
 <!-- PREFERENCES MODAL -->
 <div class="modal" id="prefsModal"><div class="mbox" style="max-width:520px;"><div class="mhd"><h4>⚙️ Job Search Preferences</h4><button class="mcl" onclick="closeModal('prefsModal')">✕</button></div><div class="mbody">
-  <p style="font-size:11px;color:var(--muted2);margin-bottom:14px;font-family:'DM Mono',monospace;">Used for AiMooki auto-apply answers and personalising your experience.</p>
+  <p style="font-size:11px;color:var(--muted2);margin-bottom:14px;font-family:'DM Mono',monospace;">Used for <span class="am">AiMooki</span> auto-apply answers and personalising your experience.</p>
   <div class="frow">
     <div><label class="pref-label">Currently Employed</label>
       <select class="fi" id="pEmployed" onchange="toggleNoticeField()">
