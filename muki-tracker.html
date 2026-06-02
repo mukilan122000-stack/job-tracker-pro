@@ -1149,6 +1149,7 @@ tr:hover td{background:rgba(99,102,241,.03);}
 }
 
 /* ── TOAST ─────────────────────────────────────────────── */
+@keyframes slideInRight{from{opacity:0;transform:translateX(60px)}to{opacity:1;transform:translateX(0)}}
 .toast{
   position:fixed;bottom:20px;right:20px;
   background:var(--grad);
@@ -1861,6 +1862,7 @@ tr:hover td{background:rgba(99,102,241,.03);}
       <div id="res-tech-q"></div>
       <div style="font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2);margin:14px 0 8px;">💬 Behavioural Questions</div>
       <div id="res-beh-q"></div>
+      <button id="startPrepBtn" onclick="startInterviewPrep()" style="display:none;width:100%;margin-top:16px;background:linear-gradient(90deg,var(--accent2),var(--accent));color:#000;border:none;border-radius:9px;padding:11px;font-family:'Syne',sans-serif;font-weight:800;font-size:12px;cursor:pointer;letter-spacing:.02em;">🎯 Start Interview Prep — One Question at a Time</button>
     </div>
   </div>
 </div>
@@ -1967,7 +1969,18 @@ tr:hover td{background:rgba(99,102,241,.03);}
     <option value="no">No — currently on a break</option>
     <option value="fresher">Fresher — looking for first job</option>
   </select>
-  <div style="display:flex;gap:8px;">
+
+  <!-- UPDATE RESUME SECTION -->
+  <div style="border-top:1px solid var(--border);margin-top:4px;padding-top:14px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+      <label class="pref-label" style="margin-bottom:0;">📄 Update Resume</label>
+      <span id="epResumeStatus" style="font-family:'DM Mono',monospace;font-size:9px;color:var(--accent3);"></span>
+    </div>
+    <div style="font-size:10px;color:var(--muted);margin-bottom:8px;font-family:'DM Mono',monospace;line-height:1.6;">Paste your latest resume text below — replaces everywhere in the app including Analyser and AiMooki scoring.</div>
+    <textarea id="epResumeText" style="width:100%;height:90px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:10px;color:var(--text);font-family:'DM Mono',monospace;font-size:10px;resize:vertical;line-height:1.5;box-sizing:border-box;" placeholder="Paste your full resume text here...&#10;&#10;Plain text only — no PDF binary. Copy all text from your CV document and paste here."></textarea>
+  </div>
+
+  <div style="display:flex;gap:8px;margin-top:12px;">
     <button onclick="saveProfileOnly()" style="flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--muted2);border-radius:7px;padding:9px;font-family:'Syne',sans-serif;font-weight:700;font-size:12px;cursor:pointer;">💾 Save Only</button>
     <button onclick="saveProfileAndRegenerate()" style="flex:2;background:linear-gradient(90deg,var(--accent2),var(--accent));color:#000;border:none;border-radius:7px;padding:9px;font-family:'Syne',sans-serif;font-weight:700;font-size:12px;cursor:pointer;">🤖 Save + Regenerate Tasks</button>
   </div>
@@ -2058,6 +2071,60 @@ tr:hover td{background:rgba(99,102,241,.03);}
 </div></div></div>
 
 <div class="toast" id="toast">✓ Saved</div>
+
+<!-- INTERVIEW PREP MODAL -->
+<div class="modal" id="interviewPrepModal"><div class="mbox" style="max-width:600px;"><div class="mhd"><h4>🎯 Interview Prep — <span id="ipRole" style="color:var(--accent);"></span></h4><button class="mcl" onclick="closeInterviewPrep()">✕</button></div><div class="mbody" style="padding:0;">
+  <!-- Progress bar -->
+  <div style="background:var(--surface2);padding:14px 20px;border-bottom:1px solid var(--border);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+      <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted2);">Question <span id="ipCurrent">1</span> of <span id="ipTotal">0</span></span>
+      <span id="ipType" style="font-family:'DM Mono',monospace;font-size:9px;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;background:rgba(0,229,255,.08);padding:2px 8px;border-radius:4px;"></span>
+    </div>
+    <div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;">
+      <div id="ipProgress" style="height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent));border-radius:2px;transition:width .4s ease;width:0%;"></div>
+    </div>
+  </div>
+  <!-- Question -->
+  <div style="padding:20px;">
+    <div id="ipQuestion" style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;line-height:1.6;margin-bottom:16px;color:var(--text);"></div>
+    <!-- Your answer textarea -->
+    <div style="margin-bottom:12px;">
+      <label style="font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted2);display:block;margin-bottom:6px;">Your Answer (optional — practice out loud)</label>
+      <textarea id="ipAnswer" style="width:100%;height:70px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:10px;color:var(--text);font-family:'DM Mono',monospace;font-size:11px;resize:none;box-sizing:border-box;line-height:1.5;" placeholder="Type your answer here to practice, or just think through it..."></textarea>
+    </div>
+    <!-- Coached answer -->
+    <div id="ipCoachBox" style="display:none;background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.15);border-radius:10px;padding:14px;margin-bottom:12px;">
+      <div style="font-family:'DM Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--accent2);margin-bottom:8px;">🤖 AiMooki Coached Answer</div>
+      <div id="ipCoachText" style="font-size:11px;color:var(--text);line-height:1.8;"></div>
+    </div>
+    <!-- Buttons -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button id="ipCoachBtn" onclick="getIpCoach()" style="flex:1;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.3);color:var(--accent2);border-radius:7px;padding:8px;font-family:'Syne',sans-serif;font-weight:700;font-size:11px;cursor:pointer;min-width:120px;">🤖 Get Coached Answer</button>
+      <button onclick="ipPrev()" id="ipPrevBtn" style="background:var(--surface2);border:1px solid var(--border);color:var(--muted2);border-radius:7px;padding:8px 14px;font-family:'Syne',sans-serif;font-weight:700;font-size:11px;cursor:pointer;">← Prev</button>
+      <button onclick="ipNext()" id="ipNextBtn" style="flex:1;background:linear-gradient(90deg,var(--accent2),var(--accent));color:#000;border:none;border-radius:7px;padding:8px;font-family:'Syne',sans-serif;font-weight:700;font-size:12px;cursor:pointer;">Next →</button>
+    </div>
+  </div>
+  <!-- Footer -->
+  <div style="padding:12px 20px;border-top:1px solid var(--border);background:var(--surface2);display:flex;align-items:center;justify-content:space-between;border-radius:0 0 14px 14px;">
+    <span style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">Questions generated from your resume + JD match</span>
+    <button onclick="downloadIpPDF()" style="background:transparent;border:1px solid var(--border);color:var(--muted2);border-radius:6px;padding:4px 10px;font-family:'DM Mono',monospace;font-size:9px;cursor:pointer;">⬇ Download PDF</button>
+  </div>
+</div></div></div>
+
+<!-- AUTO-APPLY NOTIFICATION TOAST (full banner) -->
+<div id="aaNotifBanner" style="display:none;position:fixed;bottom:20px;right:20px;z-index:9999;max-width:340px;background:linear-gradient(135deg,rgba(16,24,40,.98),rgba(26,34,50,.98));border:1px solid rgba(99,102,241,.3);border-radius:14px;padding:16px;box-shadow:0 8px 32px rgba(0,0,0,.4);animation:slideInRight .4s ease;">
+  <div style="display:flex;align-items:flex-start;gap:10px;">
+    <div style="font-size:22px;flex-shrink:0;">🤖</div>
+    <div style="flex:1;">
+      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:12px;color:var(--text);margin-bottom:4px;">AiMooki Applied While You Were Away</div>
+      <div id="aaNotifText" style="font-size:11px;color:var(--muted2);line-height:1.6;margin-bottom:8px;"></div>
+      <div style="display:flex;gap:6px;">
+        <button onclick="viewAutoApplyLog()" style="flex:1;background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);color:var(--accent2);border-radius:6px;padding:5px 8px;font-family:'DM Mono',monospace;font-size:9px;cursor:pointer;">View Log</button>
+        <button onclick="dismissAaNotif()" style="background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:5px 8px;font-family:'DM Mono',monospace;font-size:9px;cursor:pointer;">Dismiss</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script>
 // ── localStorage wrapper — replaces window.storage for local HTML use ──
@@ -3454,9 +3521,179 @@ function renderAnalysisResult(r){
   document.getElementById('res-verdict').textContent=r.verdict||'';
   document.getElementById('res-tech-q').innerHTML=(r.technicalQuestions||[]).map((q,i)=>`<div class="q-item"><span class="q-num">${i+1}.</span><span>${q}</span></div>`).join('');
   document.getElementById('res-beh-q').innerHTML=(r.behaviouralQuestions||[]).map((q,i)=>`<div class="q-item"><span class="q-num">${i+1}.</span><span>${q}</span></div>`).join('');
+  // Store questions for interview prep modal
+  window._ipQuestions=[];
+  (r.technicalQuestions||[]).forEach(q=>window._ipQuestions.push({q,type:'Technical'}));
+  (r.behaviouralQuestions||[]).forEach(q=>window._ipQuestions.push({q,type:'Behavioural'}));
+  window._ipRole=(PROFILE&&PROFILE.role)?PROFILE.role.split(',')[0].trim():'this role';
+  // Show prep button
+  const prepBtn=document.getElementById('startPrepBtn');
+  if(prepBtn&&window._ipQuestions.length>0) prepBtn.style.display='block';
   res.scrollIntoView({behavior:'smooth',block:'start'});
 }
 
+// ════════════════════════════════════════════════
+// INTERVIEW PREP — ONE QUESTION AT A TIME
+// ════════════════════════════════════════════════
+let _ipIdx=0;
+let _ipCoaches={};
+
+function startInterviewPrep(){
+  if(!window._ipQuestions||window._ipQuestions.length===0){alert('Run Analyse Match first to generate questions.');return;}
+  _ipIdx=0;_ipCoaches={};
+  document.getElementById('ipRole').textContent=window._ipRole||'Interview Prep';
+  document.getElementById('ipTotal').textContent=window._ipQuestions.length;
+  document.getElementById('interviewPrepModal').classList.add('show');
+  renderIpQuestion();
+}
+
+function renderIpQuestion(){
+  const qs=window._ipQuestions;
+  if(!qs||qs.length===0)return;
+  const q=qs[_ipIdx];
+  document.getElementById('ipCurrent').textContent=_ipIdx+1;
+  document.getElementById('ipQuestion').textContent=q.q;
+  document.getElementById('ipType').textContent=q.type;
+  document.getElementById('ipAnswer').value='';
+  document.getElementById('ipProgress').style.width=((_ipIdx+1)/qs.length*100)+'%';
+  // Show/hide coach box
+  const cb=document.getElementById('ipCoachBox');
+  const ct=document.getElementById('ipCoachText');
+  if(_ipCoaches[_ipIdx]){
+    ct.textContent=_ipCoaches[_ipIdx];
+    cb.style.display='block';
+    document.getElementById('ipCoachBtn').textContent='✓ Coached Answer';
+  } else {
+    cb.style.display='none';
+    document.getElementById('ipCoachBtn').textContent='🤖 Get Coached Answer';
+  }
+  // Prev/next button states
+  document.getElementById('ipPrevBtn').style.opacity=_ipIdx===0?'0.3':'1';
+  document.getElementById('ipPrevBtn').disabled=_ipIdx===0;
+  document.getElementById('ipNextBtn').textContent=_ipIdx===qs.length-1?'Finish ✓':'Next →';
+}
+
+function ipNext(){
+  const qs=window._ipQuestions;
+  if(_ipIdx>=qs.length-1){closeInterviewPrep();return;}
+  _ipIdx++;renderIpQuestion();
+}
+
+function ipPrev(){
+  if(_ipIdx<=0)return;
+  _ipIdx--;renderIpQuestion();
+}
+
+function closeInterviewPrep(){
+  closeModal('interviewPrepModal');
+  document.getElementById('ipAnswer').value='';
+  document.getElementById('ipCoachBox').style.display='none';
+}
+
+async function getIpCoach(){
+  if(_ipCoaches[_ipIdx]){
+    // Already fetched — just show it
+    document.getElementById('ipCoachBox').style.display='block';
+    return;
+  }
+  const q=window._ipQuestions[_ipIdx];
+  const key=(localStorage.getItem('gemini-key')||'').trim();
+  if(!key){alert('Please add your Gemini API key in the Analyser tab first.');return;}
+  const btn=document.getElementById('ipCoachBtn');
+  btn.textContent='⟳ Generating...';btn.disabled=true;
+  const resume=RESUME_TEXT||'Finance professional with experience in FP&A, Excel, Power BI, SAP.';
+  const role=window._ipRole||'Finance Analyst';
+  const prompt=`You are an expert interview coach helping a ${role} candidate answer an interview question.
+
+CANDIDATE BACKGROUND:
+${resume.slice(0,800)}
+
+QUESTION TYPE: ${q.type}
+QUESTION: ${q.q}
+
+Write a strong, concise coached answer (120 words max) that:
+- Uses STAR format for behavioural questions (Situation, Task, Action, Result)
+- Is specific and references their finance/accounting background
+- Sounds natural, not robotic
+- Ends with a confident closing statement
+
+Return ONLY the answer text. No preamble, no labels, no formatting.`;
+  try{
+    const url=`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(key)}`;
+    const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{role:'user',parts:[{text:prompt}]}],generationConfig:{temperature:0.4,maxOutputTokens:400}})});
+    const data=await res.json();
+    const text=data?.candidates?.[0]?.content?.parts?.[0]?.text||'';
+    if(text.trim()){
+      _ipCoaches[_ipIdx]=text.trim();
+      document.getElementById('ipCoachText').textContent=text.trim();
+      document.getElementById('ipCoachBox').style.display='block';
+      btn.textContent='✓ Coached Answer';
+    } else {
+      btn.textContent='🤖 Get Coached Answer';
+    }
+  }catch(e){
+    btn.textContent='🤖 Get Coached Answer';
+  }
+  btn.disabled=false;
+}
+
+function downloadIpPDF(){
+  const qs=window._ipQuestions||[];
+  if(qs.length===0){alert('No questions to download. Run Analyse Match first.');return;}
+  const role=window._ipRole||'Interview';
+  let html=`<html><head><style>body{font-family:Arial,sans-serif;padding:32px;max-width:700px;margin:0 auto;color:#111;}h1{font-size:18px;margin-bottom:4px;}h2{font-size:12px;color:#6366f1;text-transform:uppercase;letter-spacing:.08em;margin:24px 0 10px;border-bottom:1px solid #eee;padding-bottom:6px;}h3{font-size:11px;font-weight:700;margin-bottom:4px;}.q{margin-bottom:16px;}.q-num{color:#6366f1;font-weight:700;font-size:13px;}.q-text{font-size:12px;line-height:1.7;margin:4px 0 0 20px;}.coach{background:#f5f3ff;border-left:3px solid #6366f1;padding:8px 12px;margin:6px 0 0 20px;font-size:11px;color:#333;line-height:1.6;border-radius:0 6px 6px 0;}.answer-space{height:60px;border:1px dashed #ccc;border-radius:6px;margin:6px 0 0 20px;}.footer{margin-top:32px;font-size:10px;color:#999;text-align:center;}</style></head><body>`;
+  html+=`<h1>🎯 Interview Prep — ${role}</h1><p style="font-size:11px;color:#666;margin-bottom:4px;">Generated by Job Tracker Pro • AiMooki</p>`;
+  let lastType='';
+  qs.forEach((item,i)=>{
+    if(item.type!==lastType){html+=`<h2>${item.type==='Technical'?'🧠 Technical Questions':'💬 Behavioural Questions'}</h2>`;lastType=item.type;}
+    html+=`<div class="q"><div><span class="q-num">${i+1}.</span></div><div class="q-text">${item.q}</div>`;
+    if(_ipCoaches[i]) html+=`<div class="coach"><strong>AiMooki:</strong> ${_ipCoaches[i]}</div>`;
+    else html+=`<div class="answer-space"></div>`;
+    html+=`</div>`;
+  });
+  html+=`<div class="footer">Job Tracker Pro — Generated ${new Date().toLocaleDateString()}</div></body></html>`;
+  const blob=new Blob([html],{type:'text/html'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`Interview_Prep_${role.replace(/[^a-zA-Z0-9]/g,'_')}_${new Date().toISOString().slice(0,10)}.html`;
+  a.click();URL.revokeObjectURL(a.href);
+}
+
+// ════════════════════════════════════════════════
+// AUTO-APPLY NOTIFICATION BANNER
+// ════════════════════════════════════════════════
+async function checkAutoApplyNotifications(){
+  try{
+    const key=localStorage.getItem('muki-license-key');
+    if(!key||key==='DEV-MODE'&&!localStorage.getItem('show-dev-notif'))return;
+    const res=await fetch(`https://muki-job-server.onrender.com/notifications?licenseKey=${encodeURIComponent(key)}`,{signal:AbortSignal.timeout(8000)});
+    if(!res.ok)return;
+    const data=await res.json();
+    const unread=(data.notifications||[]).filter(n=>!n.read&&n.type==='auto_apply');
+    if(unread.length===0)return;
+    const count=unread.length;
+    const roles=[...new Set(unread.slice(0,3).map(n=>n.role||'a role').filter(Boolean))];
+    const text=count===1?`Applied to ${roles[0]||'1 job'} on your behalf.`:`Applied to ${count} jobs — including ${roles.slice(0,2).join(', ')}${count>2?' and more':''}.`;
+    document.getElementById('aaNotifText').textContent=text;
+    document.getElementById('aaNotifBanner').style.display='block';
+    // Mark as read after showing
+    fetch(`https://muki-job-server.onrender.com/notifications/mark-read`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({licenseKey:key})}).catch(()=>{});
+  }catch(e){}
+}
+
+function dismissAaNotif(){document.getElementById('aaNotifBanner').style.display='none';}
+
+function viewAutoApplyLog(){
+  dismissAaNotif();
+  // Switch to Applications tab
+  const tabs=document.querySelectorAll('.tab');
+  tabs.forEach(t=>t.classList.remove('act'));
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('act'));
+  const appsTab=document.querySelector('.tab[onclick*="apps"]')||document.querySelector('.tab:nth-child(3)');
+  if(appsTab){appsTab.classList.add('act');}
+  const appsPane=document.getElementById('pane-apps');
+  if(appsPane){appsPane.classList.add('act');}
+}
 
 // ════════════════════════════════════════════════
 // EDIT APPLICATION
@@ -3534,6 +3771,13 @@ function openEditProfile(){
   document.getElementById('epSkills').value=PROFILE.skills||'';
   document.getElementById('epCities').value=PROFILE.cities||'';
   document.getElementById('epEmployed').value=PROFILE.employed||'yes';
+  // Pre-fill resume textarea with current resume
+  const epRt=document.getElementById('epResumeText');
+  const epSt=document.getElementById('epResumeStatus');
+  if(epRt){
+    epRt.value=RESUME_TEXT||'';
+    if(epSt) epSt.textContent=RESUME_TEXT&&RESUME_TEXT.length>50?'✓ Resume loaded ('+Math.round(RESUME_TEXT.length/100)/10+'k chars)':'No resume yet';
+  }
   document.getElementById('editProfileModal').classList.add('show');
 }
 function saveProfileOnly(){
@@ -3543,6 +3787,13 @@ function saveProfileOnly(){
   PROFILE.cities=document.getElementById('epCities').value.trim()||PROFILE.cities;
   PROFILE.employed=document.getElementById('epEmployed').value;
   window.storage.set('muki-profile',JSON.stringify(PROFILE)).catch(()=>{});
+  // Save resume if updated
+  const newResume=document.getElementById('epResumeText')?.value?.trim();
+  if(newResume&&newResume.length>50&&newResume!==RESUME_TEXT){
+    RESUME_TEXT=newResume;RESUME_NAME='Updated Resume';
+    window.storage.set('muki-resume',JSON.stringify({text:newResume,name:'Updated Resume',updated:new Date().toISOString()})).catch(()=>{});
+    loadResumeIntoAnalyser();
+  }
   closeModal('editProfileModal');applyProfile();renderLiveJobsGuide();flash();
 }
 async function saveProfileAndRegenerate(){
@@ -3738,6 +3989,8 @@ async function init(){
       localStorage.setItem('muki-last-backup',Date.now().toString());
     }
   }catch(e){}
+  // Check for auto-apply notifications after 4 seconds (server may be waking up)
+  setTimeout(()=>checkAutoApplyNotifications(),4000);
 }
 init();
 
