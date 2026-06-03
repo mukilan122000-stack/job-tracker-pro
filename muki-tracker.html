@@ -1314,13 +1314,52 @@ tr:hover td{background:rgba(99,102,241,.03);}
   font-size:12px;color:var(--muted2);
   margin-top:14px;line-height:1.7;
 }
-.ob-spinner{
-  width:36px;height:36px;
-  border:3px solid rgba(255,255,255,.08);
-  border-top-color:var(--accent);
-  border-radius:50%;
-  animation:spin .8s linear infinite;
-  margin:0 auto;
+.ob-spinner{display:none;}
+
+/* ── LASER LOADER ──────────────────────────────────────── */
+.laser-loader{
+  display:inline-block;
+  position:relative;
+  font-family:'Syne',sans-serif;
+  font-weight:800;
+  font-size:18px;
+  background:linear-gradient(90deg,#a78bfa,#38bdf8);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  animation:amBreathe 2.2s ease-in-out infinite;
+  margin:0 auto 2px;
+}
+.laser-loader::after{
+  content:'';
+  position:absolute;
+  bottom:-4px;left:-5%;
+  height:2px;width:22px;
+  border-radius:2px;
+  background:linear-gradient(90deg,transparent,#38bdf8,#a78bfa,transparent);
+  box-shadow:0 0 8px 2px rgba(56,189,248,.7);
+  animation:laserScan 1.6s linear infinite;
+}
+@keyframes laserScan{
+  0%{left:-10%;opacity:0}
+  5%{opacity:1}
+  90%{opacity:1}
+  100%{left:110%;opacity:0}
+}
+
+/* Inline laser loader for buttons */
+.btn-laser{
+  display:inline-block;
+  position:relative;
+  padding-bottom:3px;
+}
+.btn-laser::after{
+  content:'';
+  position:absolute;
+  bottom:0;left:-5%;
+  height:2px;width:16px;
+  border-radius:2px;
+  background:linear-gradient(90deg,transparent,#38bdf8,#a78bfa,transparent);
+  box-shadow:0 0 6px 2px rgba(56,189,248,.6);
+  animation:laserScan 1.4s linear infinite;
 }
 
 /* ── SCROLLBAR ─────────────────────────────────────────── */
@@ -1437,7 +1476,8 @@ tr:hover td{background:rgba(99,102,241,.03);}
 }
 
 /* AiMooki brand class — applied everywhere the name appears */
-.am{font-family:'Syne',sans-serif;font-weight:800;background:linear-gradient(90deg,#a78bfa,#38bdf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;display:inline;filter:drop-shadow(0 0 8px rgba(167,139,250,.4));}
+.am{font-family:'Syne',sans-serif;font-weight:800;background:linear-gradient(90deg,#a78bfa,#38bdf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;display:inline;animation:amBreathe 2.2s ease-in-out infinite;}
+@keyframes amBreathe{0%,100%{filter:drop-shadow(0 0 3px rgba(167,139,250,.25))}50%{filter:drop-shadow(0 0 14px rgba(167,139,250,.85)) drop-shadow(0 0 28px rgba(56,189,248,.45))}}
 .am-spark{width:6px;height:6px;border-radius:50%;background:linear-gradient(135deg,#a78bfa,#38bdf8);display:inline-block;margin-right:3px;vertical-align:middle;box-shadow:0 0 8px rgba(167,139,250,.7);}
 /* CRS arc animation */
 #crsArc{transition:stroke-dashoffset 1s cubic-bezier(.4,0,.2,1);}
@@ -1534,7 +1574,7 @@ tr:hover td{background:rgba(99,102,241,.03);}
     <!-- STEP 4: Loading / Generating -->
     <div class="ob-step" id="ob-step4">
       <div class="ob-loading">
-        <div class="ob-spinner"></div>
+        <div class="laser-loader">AiMooki</div>
         <div class="ob-loading-text" id="ob-loading-msg">Validating your profile...</div>
         <div style="font-size:10px;color:var(--muted);margin-top:6px;font-family:'DM Mono',monospace;">This takes about 15 seconds</div>
       </div>
@@ -1782,7 +1822,11 @@ tr:hover td{background:rgba(99,102,241,.03);}
     <div class="sc"><span class="n wa" id="netTarget">0</span><span class="l">At Targets</span></div>
   </div>
   <div id="netSync" style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:12px;display:none;"></div>
-  <div id="netSearch" style="display:none;margin-bottom:12px;"><input class="fi" id="netQ" placeholder="🔍 Search company or person..." oninput="renderNet()" style="width:100%;"></div>
+  <div id="netSearch" style="margin-bottom:12px;display:none;"><input class="fi" id="netQ" placeholder="🔍 Search company or person..." oninput="renderNet()" style="width:100%;box-sizing:border-box;"></div>
+  <div id="netFilters" style="display:none;margin-bottom:10px;display:none;gap:6px;flex-wrap:wrap;">
+    <button id="filterAllBtn" onclick="setNetFilter('all')" style="background:var(--accent);color:#000;border:none;border-radius:var(--radius-pill);padding:4px 12px;font-family:'DM Mono',monospace;font-size:9px;font-weight:700;cursor:pointer;">All</button>
+    <button id="filterUnmsgBtn" onclick="setNetFilter('unmessaged')" style="background:var(--surface2);border:1px solid var(--border);color:var(--muted2);border-radius:var(--radius-pill);padding:4px 12px;font-family:'DM Mono',monospace;font-size:9px;cursor:pointer;">💬 Not Yet Messaged</button>
+  </div>
   <div id="netList"><div style="text-align:center;padding:40px;color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;"><div style="font-size:28px;margin-bottom:8px;">📂</div>Upload your LinkedIn CSV above</div></div>
 
   <!-- Happenstance card in Network tab -->
@@ -3274,34 +3318,223 @@ function showNetStats(conns,old){
   document.getElementById('netSearch').style.display='block';
 }
 
+// ════════════════════════════════════════════════
+// NETWORK — FUZZY PARENT GROUPING + 3-LEVEL + REFERRAL
+// ════════════════════════════════════════════════
+let _netFilter='all';
+function setNetFilter(f){
+  _netFilter=f;
+  document.getElementById('filterAllBtn').style.background=f==='all'?'var(--accent)':'var(--surface2)';
+  document.getElementById('filterAllBtn').style.color=f==='all'?'#000':'var(--muted2)';
+  document.getElementById('filterAllBtn').style.border=f==='all'?'none':'1px solid var(--border)';
+  document.getElementById('filterUnmsgBtn').style.background=f==='unmessaged'?'var(--accent)':'var(--surface2)';
+  document.getElementById('filterUnmsgBtn').style.color=f==='unmessaged'?'#000':'var(--muted2)';
+  document.getElementById('filterUnmsgBtn').style.border=f==='unmessaged'?'none':'1px solid var(--border)';
+  renderNet();
+}
+
+function getParentCompany(name){
+  if(!name)return'Unknown';
+  // Strip common suffixes/branches
+  const cleaned=name.replace(/\b(india|usa|us|uk|global|africa|apac|asia|pacific|europe|gbs|gsc|gdc|pvt|ltd|llp|inc|co\.|limited|private|technologies|technology|tech|solutions|services|consulting|group|holdings|international|intl)\b/gi,'').replace(/[,.\-|]+$/,'').replace(/\s+/g,' ').trim();
+  return cleaned||name;
+}
+
 function renderNet(){
   if(!S.netData||!S.netData.length)return;
-  const coMap={};S.netData.forEach(c=>{if(!coMap[c.company])coMap[c.company]=[];coMap[c.company].push(c);});
-  const sorted=Object.entries(coMap).sort((a,b)=>b[1].length-a[1].length);
+  // Show search + filters
+  const ns=document.getElementById('netSearch');
+  const nf=document.getElementById('netFilters');
+  if(ns){ns.style.display='block';}
+  if(nf){nf.style.display='flex';}
   renderNetList(S.netData,new Set());
 }
 
 function renderNetList(conns,newNames){
   const q=(document.getElementById('netQ')||{}).value?.toLowerCase()||'';
-  const coMap={};conns.forEach(c=>{if(!coMap[c.company])coMap[c.company]=[];coMap[c.company].push(c);});
-  const sorted=Object.entries(coMap).sort((a,b)=>b[1].length-a[1].length).filter(([co,pp])=>!q||(co.toLowerCase().includes(q)||pp.some(p=>p.name.toLowerCase().includes(q))));
-  const list=document.getElementById('netList');
-  if(!sorted.length){list.innerHTML=`<div style="text-align:center;padding:24px;color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;">No results found</div>`;return;}
   if(!S.netContacted)S.netContacted={};
-  list.innerHTML=sorted.map(([co,pp],idx)=>{
-    const nc=pp.filter(p=>newNames.has(p.name)).length;
-    const contacted=pp.filter(p=>S.netContacted[p.name]==='contacted').length;
-    const replied=pp.filter(p=>S.netContacted[p.name]==='replied').length;
-    // Action prompt if 2+ connections at company
-    const actionHtml=pp.length>=2?`<div style="background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.15);border-radius:7px;padding:8px 10px;margin:6px 0;font-size:10px;color:var(--muted2);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;"><span>💡 You have <strong style="color:var(--text);">${pp.length} connections</strong> at ${co} — reach out for a referral?</span><button onclick="copyNetMsg('${esc(co)}')" style="background:var(--accent);color:#000;border:none;border-radius:5px;padding:4px 10px;font-family:'DM Mono',monospace;font-size:9px;font-weight:700;cursor:pointer;">📋 Copy Message</button></div>`:'';
+
+  // Apply not-yet-messaged filter
+  let filtered=conns;
+  if(_netFilter==='unmessaged'){
+    filtered=conns.filter(p=>!S.netContacted[p.name]||S.netContacted[p.name]==='none');
+  }
+
+  // Build fuzzy parent → branches → people map
+  const parentMap={};
+  filtered.forEach(c=>{
+    const parent=getParentCompany(c.company||'Unknown');
+    const branch=c.company||'Unknown';
+    if(!parentMap[parent])parentMap[parent]={branches:{},total:0};
+    if(!parentMap[parent].branches[branch])parentMap[parent].branches[branch]=[];
+    parentMap[parent].branches[branch].push(c);
+    parentMap[parent].total++;
+  });
+
+  // Filter by search query
+  const sortedParents=Object.entries(parentMap)
+    .filter(([par,data])=>!q||(par.toLowerCase().includes(q)||Object.keys(data.branches).some(b=>b.toLowerCase().includes(q))||Object.values(data.branches).flat().some(p=>p.name.toLowerCase().includes(q))))
+    .sort((a,b)=>b[1].total-a[1].total);
+
+  const list=document.getElementById('netList');
+  if(!sortedParents.length){
+    list.innerHTML=`<div style="text-align:center;padding:24px;color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;">No results found</div>`;
+    return;
+  }
+
+  list.innerHTML=sortedParents.map(([parent,data],pidx)=>{
+    const branches=Object.entries(data.branches).sort((a,b)=>b[1].length-a[1].length);
+    const allPeople=Object.values(data.branches).flat();
+    const contacted=allPeople.filter(p=>S.netContacted[p.name]==='contacted').length;
+    const replied=allPeople.filter(p=>S.netContacted[p.name]==='replied').length;
+    const unmessaged=allPeople.filter(p=>!S.netContacted[p.name]||S.netContacted[p.name]==='none').length;
+    const hasMultiBranch=branches.length>1;
     const statusSummary=(contacted||replied)?`<span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--accent3);margin-left:6px;">✓ ${contacted} contacted${replied?' · '+replied+' replied':''}</span>`:'';
-    return`<div class="co-block"><div class="co-hd" onclick="toggleCoBlock('cb${idx}')"><div class="co-name">${co}<span class="co-cnt">${pp.length}</span>${nc>0?`<span class="co-new-tag">+${nc} new</span>`:''}${statusSummary}</div><span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);">▼</span></div><div class="co-body" id="cb${idx}">${actionHtml}${pp.map(p=>{
-      const st=S.netContacted[p.name]||'none';
-      const stColor=st==='replied'?'var(--accent3)':st==='contacted'?'var(--warn)':'var(--muted)';
-      const stLabel=st==='replied'?'✓ Replied':st==='contacted'?'📤 Contacted':'Not contacted';
-      return`<div class="co-person" style="justify-content:space-between;">${newNames.has(p.name)?'<div class="ndot"></div>':'<div style="width:6px;flex-shrink:0;"></div>'}<div style="flex:1;"><span style="font-weight:600;">${p.name}</span>${p.role?`<span style="color:var(--muted2);font-size:10px;margin-left:4px;">· ${p.role}</span>`:''}</div><div style="display:flex;align-items:center;gap:4px;flex-shrink:0;"><span style="font-family:'DM Mono',monospace;font-size:8px;color:${stColor};">${stLabel}</span><select onchange="markContacted('${esc(p.name)}',this.value)" style="background:var(--surface2);border:1px solid var(--border);color:var(--muted2);border-radius:4px;padding:1px 4px;font-family:'DM Mono',monospace;font-size:8px;cursor:pointer;"><option value="none" ${st==='none'?'selected':''}>—</option><option value="contacted" ${st==='contacted'?'selected':''}>Contacted</option><option value="replied" ${st==='replied'?'selected':''}>Replied</option></select></div></div>`;
-    }).join('')}</div></div>`;
+    const unmsgBadge=unmessaged>0?`<span style="font-family:'DM Mono',monospace;font-size:8px;color:var(--warn);margin-left:4px;">${unmessaged} to reach</span>`:'';
+
+    // Branch list (level 2) or direct people (level 2 if single branch)
+    const branchesHtml=branches.map(([branch,people],bidx)=>{
+      const bContacted=people.filter(p=>S.netContacted[p.name]==='contacted').length;
+      const bReplied=people.filter(p=>S.netContacted[p.name]==='replied').length;
+      const branchLabel=hasMultiBranch?`<div class="co-hd" onclick="toggleCoBlock('pb${pidx}_${bidx}')" style="padding:8px 10px;background:rgba(99,102,241,.04);border-radius:6px;margin-bottom:4px;cursor:pointer;"><div class="co-name" style="font-size:11px;">${branch}<span class="co-cnt" style="font-size:9px;">${people.length}</span>${bContacted||bReplied?`<span style="font-family:'DM Mono',monospace;font-size:8px;color:var(--accent3);margin-left:4px;">${bContacted} contacted</span>`:''}</div><span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);">▼</span></div>`:'';
+      const peopleHtml=people.map(p=>{
+        const st=S.netContacted[p.name]||'none';
+        const stColor=st==='replied'?'var(--accent3)':st==='contacted'?'var(--warn)':'var(--muted)';
+        const stLabel=st==='replied'?'✓ Replied':st==='contacted'?'📤 Contacted':'—';
+        const liUrl=p.url||p.linkedin||'';
+        const msgUrl=buildLinkedInMsgUrl(p,branch);
+        return`<div class="co-person" style="justify-content:space-between;flex-wrap:wrap;gap:4px;">
+          ${newNames.has(p.name)?'<div class="ndot"></div>':'<div style="width:6px;flex-shrink:0;"></div>'}
+          <div style="flex:1;min-width:0;">
+            <span style="font-weight:600;">${p.name}</span>
+            ${p.role?`<span style="color:var(--muted2);font-size:10px;margin-left:4px;">· ${p.role}</span>`:''}
+          </div>
+          <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;flex-wrap:wrap;">
+            <span style="font-family:'DM Mono',monospace;font-size:8px;color:${stColor};">${stLabel}</span>
+            <select onchange="markContacted('${esc(p.name)}',this.value)" style="background:var(--surface2);border:1px solid var(--border);color:var(--muted2);border-radius:4px;padding:1px 4px;font-family:'DM Mono',monospace;font-size:8px;cursor:pointer;">
+              <option value="none" ${st==='none'?'selected':''}>—</option>
+              <option value="contacted" ${st==='contacted'?'selected':''}>Contacted</option>
+              <option value="replied" ${st==='replied'?'selected':''}>Replied</option>
+            </select>
+            <a href="${msgUrl}" target="_blank" style="background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);color:var(--accent2);border-radius:4px;padding:2px 7px;font-family:'DM Mono',monospace;font-size:8px;text-decoration:none;white-space:nowrap;" onclick="markContacted('${esc(p.name)}','contacted')">💬 Message</a>
+          </div>
+        </div>`;
+      }).join('');
+      return hasMultiBranch?`${branchLabel}<div id="pb${pidx}_${bidx}" style="display:none;padding-left:8px;">${peopleHtml}</div>`:peopleHtml;
+    }).join('');
+
+    // Referral search section for zero-connection companies
+    const referralHtml=buildReferralSearch(parent,data.total);
+
+    return`<div class="co-block">
+      <div class="co-hd" onclick="toggleCoBlock('cb${pidx}')">
+        <div class="co-name">${parent}<span class="co-cnt">${data.total}</span>${statusSummary}${unmsgBadge}</div>
+        <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);">▼</span>
+      </div>
+      <div class="co-body" id="cb${pidx}">
+        ${branchesHtml}
+        ${referralHtml}
+      </div>
+    </div>`;
   }).join('');
+
+  // Show referral cards for companies with 0 connections
+  renderZeroConnectionReferrals(sortedParents,list);
+}
+
+function buildLinkedInMsgUrl(person,company){
+  const role=PROFILE?.role?.split(',')[0]?.trim()||'Finance Analyst';
+  const name=PROFILE?.name||'';
+  const city=PROFILE?.cities?.split(',')[0]?.trim()||'India';
+  const msg=`Hi ${person.name.split(' ')[0]},\n\nI came across your profile while exploring opportunities at ${company}. I'm a finance professional with Big 4 background targeting ${role} roles in ${city}.\n\nWould you be open to a quick 10-min chat? Really appreciate any insights.\n\nWarm regards,\n${name}`;
+  // Open LinkedIn messaging — use profile URL if available
+  const profileUrl=person.url||person.linkedin||'';
+  if(profileUrl&&profileUrl.includes('linkedin.com')){
+    return`https://www.linkedin.com/messaging/compose/?body=${encodeURIComponent(msg)}`;
+  }
+  return`https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(person.name)}&origin=GLOBAL_SEARCH_HEADER`;
+}
+
+function buildReferralSearch(company,count){
+  // Only show for companies with connections — show "find more" option
+  if(count===0)return'';
+  return`<div style="margin-top:8px;padding:8px;background:rgba(99,102,241,.04);border-radius:6px;border:1px dashed rgba(99,102,241,.15);">
+    <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted2);margin-bottom:4px;">🔍 Find more connections at ${company}</div>
+    <button onclick="openReferralLayers('${esc(company)}')" style="background:transparent;border:1px solid rgba(99,102,241,.3);color:var(--accent2);border-radius:5px;padding:3px 10px;font-family:'DM Mono',monospace;font-size:9px;cursor:pointer;">+ Find Referral Contacts →</button>
+  </div>`;
+}
+
+function renderZeroConnectionReferrals(sortedParents,list){
+  // Get target companies from PROFILE that have no connections
+  if(!PROFILE?.role)return;
+  const targetCos=['KPMG','Deloitte','EY','PwC','JPMorgan','Goldman Sachs','HSBC','Citibank','Accenture','Genpact','WNS','Infosys BPM'];
+  const existingCos=sortedParents.map(([p])=>p.toLowerCase());
+  const missing=targetCos.filter(co=>!existingCos.some(e=>e.includes(co.toLowerCase().split(' ')[0])));
+  if(!missing.length)return;
+  const zeroHtml=missing.slice(0,5).map(co=>`
+    <div class="co-block" style="border-style:dashed;opacity:.85;">
+      <div class="co-hd" style="cursor:default;">
+        <div class="co-name">${co}<span class="co-cnt" style="background:rgba(245,158,11,.15);color:var(--warn);">0</span><span style="font-family:'DM Mono',monospace;font-size:8px;color:var(--warn);margin-left:4px;">No connections yet</span></div>
+        <button onclick="openReferralLayers('${esc(co)}')" style="background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.3);color:var(--accent2);border-radius:5px;padding:3px 10px;font-family:'DM Mono',monospace;font-size:9px;cursor:pointer;white-space:nowrap;">🎯 Find Referral Contacts</button>
+      </div>
+    </div>`).join('');
+  list.innerHTML+=`<div style="margin-top:16px;"><div style="font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px;">🎯 Target Companies — Build Your Network</div>${zeroHtml}</div>`;
+}
+
+function openReferralLayers(company){
+  const role=PROFILE?.role?.split(',')[0]?.trim()||'Finance Analyst';
+  const city=PROFILE?.cities?.split(',')[0]?.trim()||'';
+  const domain=role.split(' ').slice(0,2).join('+');
+  const layers=[
+    {label:'Layer 1 — Same role + company + city',icon:'🎯',desc:`${role} at ${company} in ${city}`,url:`https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(role+' '+company)}&geoUrn=${encodeURIComponent(city)}&origin=FACETED_SEARCH`},
+    {label:'Layer 2 — Anyone at company + city',icon:'🏢',desc:`Anyone at ${company} in ${city}`,url:`https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(company)}&geoUrn=${encodeURIComponent(city)}&origin=FACETED_SEARCH`},
+    {label:'Layer 3 — Same role + company, any city',icon:'🌍',desc:`${role} at ${company} anywhere`,url:`https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(role+' '+company)}&origin=FACETED_SEARCH`},
+    {label:'Layer 4 — Recruiters/HR at company',icon:'💼',desc:`Talent Acquisition at ${company}`,url:`https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent('Recruiter HR Talent Acquisition '+company)}&origin=FACETED_SEARCH`},
+    {label:'Layer 5 — Ex-employees (alumni)',icon:'🎓',desc:`People who previously worked at ${company}`,url:`https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent('ex '+company+' alumni finance')}&origin=FACETED_SEARCH`},
+    {label:'Layer 6 — Same role + city, any company',icon:'📍',desc:`${role} professionals in ${city}`,url:`https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(role)}&geoUrn=${encodeURIComponent(city)}&origin=FACETED_SEARCH`},
+    {label:'Layer 7 — ACCA/CA peers',icon:'📜',desc:`ACCA or CA qualified professionals in India`,url:`https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent('ACCA CA qualified finance India')}&origin=FACETED_SEARCH`},
+    {label:'Layer 8 — Finance peers across India',icon:'🔗',desc:`${role} professionals anywhere in India`,url:`https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(role+' India')}&origin=FACETED_SEARCH`},
+  ];
+  const name=PROFILE?.name||'';
+  const msgs=[
+    `Hi [Name],\n\nI'm targeting ${role} roles at ${company} in ${city} and came across your profile. Would really value a quick chat about the team culture if you're open to it.\n\nWarm regards,\n${name}`,
+    `Hi [Name],\n\nI see you're at ${company} in ${city}. I'm exploring Finance opportunities there and would love to connect and learn about your experience at the firm.\n\nWarm regards,\n${name}`,
+    `Hi [Name],\n\nI'm targeting ${company} for ${role} roles and came across your profile. Would really value your perspective on the firm — happy to keep it very brief.\n\nWarm regards,\n${name}`,
+    `Hi [Name],\n\nI noticed you work in Talent Acquisition at ${company}. I'm a finance professional actively exploring opportunities there and would love to connect.\n\nWarm regards,\n${name}`,
+    `Hi [Name],\n\nI see you previously worked at ${company} — I'm currently exploring opportunities there in Finance and would really value your candid perspective.\n\nWarm regards,\n${name}`,
+    `Hi [Name],\n\nFellow finance professional in ${city||'India'} here. I'm exploring opportunities at a few firms and would love to expand my network with people in the same space.\n\nWarm regards,\n${name}`,
+    `Hi [Name],\n\nFellow ACCA/CA professional here. I'm actively exploring Finance opportunities and would love to connect with peers in the same field.\n\nWarm regards,\n${name}`,
+    `Hi [Name],\n\nFinance professional here targeting ${role} roles. Came across your profile and would love to connect with people in the same field.\n\nWarm regards,\n${name}`,
+  ];
+  // Build modal HTML
+  let existing=document.getElementById('referralLayerModal');
+  if(existing)existing.remove();
+  const modal=document.createElement('div');
+  modal.id='referralLayerModal';
+  modal.className='modal show';
+  modal.innerHTML=`<div class="mbox" style="max-width:560px;"><div class="mhd"><h4>🎯 Find Referral Contacts — ${company}</h4><button class="mcl" onclick="closeModal('referralLayerModal')">✕</button></div><div class="mbody" style="padding:0;max-height:70vh;overflow-y:auto;">
+    <div style="padding:12px 16px;background:rgba(99,102,241,.05);border-bottom:1px solid var(--border);font-size:11px;color:var(--muted2);font-family:'DM Mono',monospace;">Start from Layer 1 (best match) and work down. Each opens a LinkedIn search. Copy the message, personalise the name, and send.</div>
+    ${layers.map((l,i)=>`<div style="padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.04);">
+      <div style="display:flex;align-items:flex-start;gap:10px;">
+        <span style="font-size:16px;flex-shrink:0;">${l.icon}</span>
+        <div style="flex:1;">
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:11px;margin-bottom:2px;">${l.label}</div>
+          <div style="font-size:10px;color:var(--muted2);margin-bottom:8px;">${l.desc}</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <a href="${l.url}" target="_blank" style="background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.25);color:#38bdf8;border-radius:5px;padding:3px 10px;font-family:'DM Mono',monospace;font-size:9px;text-decoration:none;">🔍 Search LinkedIn</a>
+            <button onclick="copyReferralMsg(${i},'${esc(company)}')" style="background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.3);color:var(--accent2);border-radius:5px;padding:3px 10px;font-family:'DM Mono',monospace;font-size:9px;cursor:pointer;">📋 Copy Message</button>
+          </div>
+        </div>
+      </div>
+    </div>`).join('')}
+  </div></div>`;
+  document.body.appendChild(modal);
+  window._referralMsgs=msgs;
+}
+
+function copyReferralMsg(idx,company){
+  const msg=(window._referralMsgs||[])[idx]||'';
+  navigator.clipboard.writeText(msg).then(()=>flash()).catch(()=>{});
 }
 
 function markContacted(name,status){
@@ -3317,7 +3550,9 @@ function copyNetMsg(company){
   navigator.clipboard.writeText(msg).then(()=>flash()).catch(()=>{});
 }
 
-function toggleCoBlock(id){const el=document.getElementById(id);el.style.display=el.style.display==='block'?'none':'block';}
+function toggleCoBlock(id){const el=document.getElementById(id);if(el)el.style.display=el.style.display==='block'?'none':'block';}
+
+
 
 // ════════════════════════════════════════════════
 // ANALYSER — GEMINI FREE API
@@ -3350,7 +3585,7 @@ async function runAnalysis(){
   if(!key){alert('Please enter your free Gemini API key.\n\nGet it free at aistudio.google.com/apikey\nNo credit card needed.');return;}
   const btn=document.getElementById('analyse-btn');
   const icon=document.getElementById('analyse-icon');
-  btn.disabled=true;icon.textContent='⟳';
+  btn.disabled=true;icon.innerHTML='<span class="btn-laser" style="font-size:11px;font-family:\'DM Mono\',monospace;letter-spacing:.05em;">Analysing</span>';
   document.getElementById('analysis-result').style.display='none';
 
   const prompt=`You are an expert career coach and resume analyst. Analyse the resume against the job description carefully. Return ONLY valid JSON, no markdown, no backticks, no extra text.
@@ -3465,7 +3700,7 @@ fitColor: #34d399 for High (70+), #fbbf24 for Medium (40-69), #f87171 for Low (<
       </div>`;
     }
   }
-  btn.disabled=false;icon.textContent='🔍';
+  btn.disabled=false;icon.innerHTML='🔍';
 }
 
 
@@ -3600,7 +3835,7 @@ async function getIpCoach(){
   const key=(localStorage.getItem('gemini-key')||'').trim();
   if(!key){alert('Please add your Gemini API key in the Analyser tab first.');return;}
   const btn=document.getElementById('ipCoachBtn');
-  btn.textContent='⟳ Generating...';btn.disabled=true;
+  btn.innerHTML='<span class="btn-laser" style="font-size:10px;font-family:\'DM Mono\',monospace;">Generating</span>';btn.disabled=true;
   const resume=RESUME_TEXT||'Finance professional with experience in FP&A, Excel, Power BI, SAP.';
   const role=window._ipRole||'Finance Analyst';
   const prompt=`You are an expert interview coach helping a ${role} candidate answer an interview question.
