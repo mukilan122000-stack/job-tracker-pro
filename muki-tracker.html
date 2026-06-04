@@ -3426,20 +3426,101 @@ function renderNetList(conns,newNames){
     // Referral search section for zero-connection companies
     const referralHtml=buildReferralSearch(parent,data.total);
 
-    return`<div class="co-block">
-      <div class="co-hd" onclick="toggleCoBlock('cb${pidx}')">
-        <div class="co-name">${parent}<span class="co-cnt">${data.total}</span>${statusSummary}${unmsgBadge}</div>
-        <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);">▼</span>
-      </div>
-      <div class="co-body" id="cb${pidx}">
-        ${branchesHtml}
-        ${referralHtml}
+    // Store data for modal access
+    window._netModalData=window._netModalData||{};
+    window._netModalData[pidx]={parent,branches,data,branchesHtml,referralHtml,statusSummary,unmsgBadge,hasMultiBranch};
+
+    const cardContacted=Object.values(data.branches).flat().filter(p=>S.netContacted&&S.netContacted[p.name]==='contacted').length;
+    const cardReplied=Object.values(data.branches).flat().filter(p=>S.netContacted&&S.netContacted[p.name]==='replied').length;
+    const cardUnmessaged=Object.values(data.branches).flat().filter(p=>!S.netContacted||!S.netContacted[p.name]||S.netContacted[p.name]==='none').length;
+
+    return`<div class="co-block" onclick="openCompanyModal(${pidx})" style="cursor:pointer;transition:transform .15s,border-color .2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+      <div style="padding:14px 12px;">
+        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:12px;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${parent}</div>
+        <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-bottom:4px;">
+          <span class="co-cnt">${data.total}</span>
+          ${cardUnmessaged>0?`<span style="font-family:'DM Mono',monospace;font-size:8px;color:var(--warn);">${cardUnmessaged} to reach</span>`:''}
+        </div>
+        ${cardContacted||cardReplied?`<div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--accent3);">${cardContacted?cardContacted+' contacted':''}${cardReplied?' · '+cardReplied+' replied':''}</div>`:''}
+        ${hasMultiBranch?`<div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);margin-top:4px;">${branches.length} branches ›</div>`:`<div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);margin-top:4px;">Tap to view ›</div>`}
       </div>
     </div>`;
   }).join('');
 
   // Show referral cards for companies with 0 connections
   renderZeroConnectionReferrals(sortedParents,list);
+}
+
+function openCompanyModal(pidx){
+  const d=window._netModalData&&window._netModalData[pidx];
+  if(!d)return;
+  const {parent,branches,data,branchesHtml,referralHtml,hasMultiBranch}=d;
+  const allPeople=Object.values(data.branches).flat();
+  const total=data.total;
+
+  let existing=document.getElementById('companyNetModal');
+  if(existing)existing.remove();
+
+  const modal=document.createElement('div');
+  modal.id='companyNetModal';
+  modal.className='modal show';
+  modal.innerHTML=`<div class="mbox" style="max-width:580px;"><div class="mhd" style="position:sticky;top:0;z-index:2;background:var(--card);">
+    <h4 style="display:flex;align-items:center;gap:8px;">
+      <span>${parent}</span>
+      <span class="co-cnt">${total}</span>
+    </h4>
+    <button class="mcl" onclick="closeModal('companyNetModal')">✕</button>
+  </div>
+  <div class="mbody" style="padding:0;max-height:75vh;overflow-y:auto;">
+    ${hasMultiBranch?`<div style="padding:10px 16px;background:rgba(99,102,241,.04);border-bottom:1px solid var(--border);font-family:'DM Mono',monospace;font-size:9px;color:var(--muted2);">
+      ${branches.map(([branch,people],bi)=>`<span onclick="scrollToBranch('netbranch_${pidx}_${bi}')" style="cursor:pointer;color:var(--accent2);margin-right:10px;">${branch} (${people.length})</span>`).join('')}
+    </div>`:''}
+    <div style="padding:12px 16px;">
+      ${branches.map(([branch,people],bi)=>{
+        const bContacted=people.filter(p=>S.netContacted&&S.netContacted[p.name]==='contacted').length;
+        const bReplied=people.filter(p=>S.netContacted&&S.netContacted[p.name]==='replied').length;
+        return`${hasMultiBranch?`<div id="netbranch_${pidx}_${bi}" style="font-family:'Syne',sans-serif;font-weight:700;font-size:11px;color:var(--muted2);margin:10px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--border);">${branch}<span style="font-size:9px;font-weight:400;margin-left:6px;">${people.length} people${bContacted?' · '+bContacted+' contacted':''}</span></div>`:''}
+        ${people.map(p=>{
+          const st=S.netContacted&&S.netContacted[p.name]||'none';
+          const stColor=st==='replied'?'var(--accent3)':st==='contacted'?'var(--warn)':'var(--muted)';
+          const stLabel=st==='replied'?'✓ Replied':st==='contacted'?'📤 Contacted':'—';
+          const msgUrl=buildLinkedInMsgUrl(p,branch);
+          return`<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.03);">
+            <div style="width:32px;height:32px;border-radius:50%;background:rgba(99,102,241,.12);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;font-size:11px;color:var(--accent2);flex-shrink:0;">${p.name.charAt(0)}</div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-weight:600;font-size:12px;">${p.name}</div>
+              ${p.role?`<div style="color:var(--muted2);font-size:10px;margin-top:1px;">${p.role}</div>`:''}
+              <div style="display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap;">
+                <span style="font-family:'DM Mono',monospace;font-size:8px;color:${stColor};">${stLabel}</span>
+                <select onchange="markContactedAndRefresh('${esc(p.name)}',this.value,${pidx})" style="background:var(--surface2);border:1px solid var(--border);color:var(--muted2);border-radius:4px;padding:2px 4px;font-family:'DM Mono',monospace;font-size:8px;cursor:pointer;">
+                  <option value="none" ${st==='none'?'selected':''}>— Not contacted</option>
+                  <option value="contacted" ${st==='contacted'?'selected':''}>📤 Contacted</option>
+                  <option value="replied" ${st==='replied'?'selected':''}>✓ Replied</option>
+                </select>
+                <a href="${msgUrl}" target="_blank" onclick="markContactedAndRefresh('${esc(p.name)}','contacted',${pidx})" style="background:linear-gradient(90deg,rgba(99,102,241,.2),rgba(56,189,248,.2));border:1px solid rgba(99,102,241,.3);color:var(--accent2);border-radius:5px;padding:3px 10px;font-family:'DM Mono',monospace;font-size:9px;text-decoration:none;white-space:nowrap;">💬 Message</a>
+              </div>
+            </div>
+          </div>`;
+        }).join('')}`;
+      }).join('')}
+      ${referralHtml}
+    </div>
+  </div></div>`;
+  document.body.appendChild(modal);
+}
+
+function scrollToBranch(id){
+  const el=document.getElementById(id);
+  if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function markContactedAndRefresh(name,status,pidx){
+  markContacted(name,status);
+  // Refresh modal after short delay
+  setTimeout(()=>{
+    const modal=document.getElementById('companyNetModal');
+    if(modal){openCompanyModal(pidx);}
+  },150);
 }
 
 function buildLinkedInMsgUrl(person,company){
