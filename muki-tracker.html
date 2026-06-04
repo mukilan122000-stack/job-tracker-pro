@@ -1857,7 +1857,7 @@ tr:hover td{background:rgba(99,102,241,.03);}
     <div class="sc"><span class="n wa" id="netTarget">0</span><span class="l">At Targets</span></div>
   </div>
   <div id="netSync" style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:12px;display:none;"></div>
-  <div id="netSearch" style="margin-bottom:12px;display:none;"><input class="fi" id="netQ" placeholder="🔍 Search company or person..." oninput="renderNet()" style="width:100%;box-sizing:border-box;"></div>
+  <div id="netSearch" style="margin-bottom:12px;display:none;"><input class="fi" id="netQ" placeholder="🔍 Search company or person..." oninput="_netPage=0;renderNet()" style="width:100%;box-sizing:border-box;"></div>
   <div id="netFilters" style="display:none;margin-bottom:10px;display:none;gap:6px;flex-wrap:wrap;">
     <button id="filterAllBtn" onclick="setNetFilter('all')" style="background:var(--accent);color:#000;border:none;border-radius:var(--radius-pill);padding:4px 12px;font-family:'DM Mono',monospace;font-size:9px;font-weight:700;cursor:pointer;">All</button>
     <button id="filterUnmsgBtn" onclick="setNetFilter('unmessaged')" style="background:var(--surface2);border:1px solid var(--border);color:var(--muted2);border-radius:var(--radius-pill);padding:4px 12px;font-family:'DM Mono',monospace;font-size:9px;cursor:pointer;">💬 Not Yet Messaged</button>
@@ -3500,7 +3500,7 @@ function showNetStats(conns,old){
 // ════════════════════════════════════════════════
 let _netFilter='all';
 function setNetFilter(f){
-  _netFilter=f;
+  _netFilter=f;_netPage=0;
   document.getElementById('filterAllBtn').style.background=f==='all'?'var(--accent)':'var(--surface2)';
   document.getElementById('filterAllBtn').style.color=f==='all'?'#000':'var(--muted2)';
   document.getElementById('filterAllBtn').style.border=f==='all'?'none':'1px solid var(--border)';
@@ -3517,9 +3517,11 @@ function getParentCompany(name){
   return cleaned||name;
 }
 
+let _netPage=0;
+const NET_PAGE_SIZE=100;
+
 function renderNet(){
   if(!S.netData||!S.netData.length)return;
-  // Show search + filters
   const ns=document.getElementById('netSearch');
   const nf=document.getElementById('netFilters');
   if(ns){ns.style.display='block';}
@@ -3559,7 +3561,14 @@ function renderNetList(conns,newNames){
     return;
   }
 
-  list.innerHTML=sortedParents.map(([parent,data],pidx)=>{
+  // Pagination
+  const totalPages=Math.ceil(sortedParents.length/NET_PAGE_SIZE);
+  if(_netPage>=totalPages)_netPage=0;
+  const pageStart=_netPage*NET_PAGE_SIZE;
+  const pageEnd=Math.min(pageStart+NET_PAGE_SIZE,sortedParents.length);
+  const pageParents=sortedParents.slice(pageStart,pageEnd);
+
+  list.innerHTML=pageParents.map(([parent,data],pidx)=>{
     const branches=Object.entries(data.branches).sort((a,b)=>b[1].length-a[1].length);
     const allPeople=Object.values(data.branches).flat();
     const contacted=allPeople.filter(p=>S.netContacted[p.name]==='contacted').length;
@@ -3624,8 +3633,23 @@ function renderNetList(conns,newNames){
     </div>`;
   }).join('');
 
-  // Show referral cards for companies with 0 connections
-  renderZeroConnectionReferrals(sortedParents,list);
+  // Show referral cards for companies with 0 connections (only on page 1)
+  if(_netPage===0) renderZeroConnectionReferrals(sortedParents,list);
+
+  // Pagination controls
+  if(totalPages>1){
+    const nav=document.createElement('div');
+    nav.style.cssText='display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding:10px 4px;';
+    nav.innerHTML=`
+      <button onclick="_netPage=Math.max(0,_netPage-1);renderNet();" ${_netPage===0?'disabled':''} style="background:var(--surface2);border:1px solid var(--border);color:${_netPage===0?'var(--muted)':'var(--text)'};border-radius:7px;padding:6px 14px;font-family:'DM Mono',monospace;font-size:10px;cursor:${_netPage===0?'default':'pointer'};">← Prev</button>
+      <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted2);text-align:center;">
+        <div>Page <span style="color:var(--text);font-weight:700;">${_netPage+1}</span> of <span style="color:var(--text);font-weight:700;">${totalPages}</span></div>
+        <div style="font-size:8px;color:var(--muted);margin-top:2px;">${sortedParents.length} companies · showing ${pageStart+1}–${pageEnd}</div>
+      </div>
+      <button onclick="_netPage=Math.min(totalPages-1,_netPage+1);renderNet();" ${_netPage===totalPages-1?'disabled':''} style="background:var(--surface2);border:1px solid var(--border);color:${_netPage===totalPages-1?'var(--muted)':'var(--text)'};border-radius:7px;padding:6px 14px;font-family:'DM Mono',monospace;font-size:10px;cursor:${_netPage===totalPages-1?'default':'pointer'};">Next →</button>
+    `;
+    list.appendChild(nav);
+  }
 }
 
 function openCompanyModal(pidx){
