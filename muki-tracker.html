@@ -1606,22 +1606,57 @@ tr:hover td{background:rgba(99,102,241,.03);}
 </div>
 
 <!-- CAREER READINESS SCORE + ACTION ROW -->
-<div id="crsRow" style="display:none;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:14px;">
-  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
-    <div style="display:flex;align-items:center;gap:12px;">
-      <div style="position:relative;width:54px;height:54px;">
-        <svg width="54" height="54" viewBox="0 0 54 54"><circle cx="27" cy="27" r="22" fill="none" stroke="var(--border2)" stroke-width="4"/><circle cx="27" cy="27" r="22" fill="none" stroke="url(#crsGrad)" stroke-width="4" stroke-linecap="round" stroke-dasharray="138.2" id="crsArc" stroke-dashoffset="138.2" transform="rotate(-90 27 27)"/><defs><linearGradient id="crsGrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#a78bfa"/><stop offset="100%" stop-color="#38bdf8"/></linearGradient></defs></svg>
-        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:14px;background:linear-gradient(135deg,#a78bfa,#38bdf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;" id="crsNum">0</div>
+<div id="crsRow" style="display:none;margin-bottom:14px;">
+  <!-- Main CRS card — full width, prominent -->
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:10px;position:relative;overflow:hidden;">
+    <!-- Background glow -->
+    <div style="position:absolute;top:-20px;right:-20px;width:120px;height:120px;background:radial-gradient(circle,rgba(167,139,250,.08),transparent);pointer-events:none;"></div>
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+      <!-- CRS circle -->
+      <div style="position:relative;width:64px;height:64px;flex-shrink:0;">
+        <svg width="64" height="64" viewBox="0 0 64 64"><circle cx="32" cy="32" r="26" fill="none" stroke="var(--border2)" stroke-width="4.5"/><circle cx="32" cy="32" r="26" fill="none" stroke="url(#crsGrad2)" stroke-width="4.5" stroke-linecap="round" stroke-dasharray="163.4" id="crsArc" stroke-dashoffset="163.4" transform="rotate(-90 32 32)"/><defs><linearGradient id="crsGrad2" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#a78bfa"/><stop offset="100%" stop-color="#38bdf8"/></linearGradient></defs></svg>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:16px;background:linear-gradient(135deg,#a78bfa,#38bdf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;" id="crsNum">0</div>
       </div>
-      <div>
-        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:12px;color:var(--text);margin-bottom:2px;">Career Readiness Score</div>
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted2);" id="crsLabel">Building your profile...</div>
+      <!-- CRS info -->
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+          <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:13px;">Career Readiness Score</span>
+          <button onclick="toggleCrsBreakdown()" style="background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);color:var(--accent2);border-radius:4px;padding:1px 6px;font-family:'DM Mono',monospace;font-size:8px;cursor:pointer;">breakdown</button>
+        </div>
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted2);margin-bottom:8px;" id="crsLabel">Building your profile...</div>
+        <!-- CRS breakdown (hidden by default) -->
+        <div id="crsBreakdown" style="display:none;background:rgba(99,102,241,.04);border:1px solid rgba(99,102,241,.1);border-radius:8px;padding:8px 10px;margin-bottom:8px;">
+          <div id="crsBreakdownItems" style="display:grid;grid-template-columns:1fr 1fr;gap:4px;"></div>
+        </div>
+        <!-- Action chips -->
+        <div style="display:flex;gap:6px;flex-wrap:wrap;" id="actionRow">
+          <div id="actionNewJobs" style="display:none;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:6px;padding:4px 9px;font-family:'DM Mono',monospace;font-size:9px;color:var(--accent3);cursor:pointer;white-space:nowrap;" onclick="goTab('jobs',document.querySelectorAll('.tb')[1])">🟢 <span id="actionNewJobsCount">0</span> new jobs</div>
+          <div id="actionFollowUp" style="display:none;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:6px;padding:4px 9px;font-family:'DM Mono',monospace;font-size:9px;color:var(--warn);cursor:pointer;white-space:nowrap;" onclick="goTab('apps',document.querySelectorAll('.tb')[2])">⏰ <span id="actionFollowUpCount">0</span> follow-up due</div>
+          <div id="actionNextTask" style="display:none;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);border-radius:6px;padding:4px 9px;font-family:'DM Mono',monospace;font-size:9px;color:var(--accent);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" id="actionNextTaskText">–</div>
+        </div>
+      </div>
+      <!-- Quick stats right side -->
+      <div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0;text-align:right;">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted2);">Day <span id="crsDay" style="color:var(--text);font-weight:700;">–</span> of 30</div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted2);"><span id="crsApps" style="color:var(--accent3);font-weight:700;">0</span> applied</div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted2);"><span id="crsInterviews" style="color:var(--accent2);font-weight:700;">0</span> interviews</div>
       </div>
     </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;" id="actionRow">
-      <div id="actionNewJobs" style="display:none;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:7px;padding:5px 10px;font-family:'DM Mono',monospace;font-size:9px;color:var(--accent3);cursor:pointer;" onclick="goTab('jobs',document.querySelectorAll('.tb')[1])">🟢 <span id="actionNewJobsCount">0</span> new jobs</div>
-      <div id="actionFollowUp" style="display:none;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:7px;padding:5px 10px;font-family:'DM Mono',monospace;font-size:9px;color:var(--warn);cursor:pointer;" onclick="goTab('apps',document.querySelectorAll('.tb')[2])">⏰ <span id="actionFollowUpCount">0</span> follow-up due</div>
-      <div id="actionNextTask" style="display:none;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);border-radius:7px;padding:5px 10px;font-family:'DM Mono',monospace;font-size:9px;color:var(--accent);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" id="actionNextTaskText">–</div>
+  </div>
+  <!-- Referral notification banner (shown after auto-apply) -->
+  <div id="referralNotifBar" style="display:none;background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.2);border-radius:10px;padding:10px 14px;margin-bottom:10px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:16px;">🤖</span>
+        <div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:11px;color:var(--text);" id="referralNotifTitle">AiMooki applied — now get a referral</div>
+          <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted2);margin-top:2px;" id="referralNotifText"></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <button onclick="goTab('network',document.querySelectorAll('.tb')[3])" style="background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);color:var(--accent3);border-radius:6px;padding:4px 10px;font-family:'DM Mono',monospace;font-size:9px;cursor:pointer;white-space:nowrap;">💬 Message Connections</button>
+        <button onclick="dismissReferralNotif()" style="background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:4px 8px;font-family:'DM Mono',monospace;font-size:9px;cursor:pointer;">✕</button>
+      </div>
     </div>
   </div>
 </div>
@@ -2371,6 +2406,14 @@ async function generateDashboard(){
   try{
     await window.storage.set('muki-profile',JSON.stringify(PROFILE));
     await window.storage.set('muki-tasks',JSON.stringify(tasks));
+    // Save profile to Firebase for cross-device restore
+    if(key&&key!=='DEV-MODE'){
+      fetch(`${FIREBASE_URL}/userProfiles/${encodeURIComponent(key)}.json`,{
+        method:'PUT',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(PROFILE)
+      }).catch(()=>{});
+    }
   }catch(e){}
 
   loadMsg.textContent='✅ Done! Launching your dashboard...';
@@ -2498,8 +2541,8 @@ function updateCRS(){
   let score=0;const breakdown=[];
 
   // 1. Resume uploaded (20 points)
-  if(RESUME_TEXT&&RESUME_TEXT.length>100){score+=20;breakdown.push('Resume ✓');}
-  else breakdown.push('Resume missing');
+  if(RESUME_TEXT&&RESUME_TEXT.length>100){score+=20;breakdown.push({label:'Resume uploaded',pts:20,max:20,done:true});}
+  else breakdown.push({label:'Resume missing',pts:0,max:20,done:false});
 
   // 2. Applications sent this week (25 points)
   const appsThisWeek=S.apps.filter(a=>{
@@ -2508,14 +2551,14 @@ function updateCRS(){
   }).length;
   const appScore=Math.min(25,Math.round(appsThisWeek/5*25));
   score+=appScore;
-  breakdown.push(`Apps this week: ${appsThisWeek}`);
+  breakdown.push({label:`Apps this week: ${appsThisWeek}`,pts:appScore,max:25,done:appScore>=25});
 
   // 3. Tasks completed (20 points)
   const allT=Object.values(TASKS).flat();
   const doneT=allT.filter(t=>S.tasks[t.id]).length;
   const taskScore=allT.length?Math.round(doneT/allT.length*20):0;
   score+=taskScore;
-  breakdown.push(`Tasks: ${doneT}/${allT.length}`);
+  breakdown.push({label:`Tasks: ${doneT}/${allT.length}`,pts:taskScore,max:20,done:taskScore>=20});
 
   // 4. Profile completeness (15 points)
   let profileScore=0;
@@ -2523,13 +2566,16 @@ function updateCRS(){
   if(PROFILE.skills&&PROFILE.skills.split(',').length>=3)profileScore+=5;
   if(PROFILE.cities)profileScore+=5;
   score+=profileScore;
+  breakdown.push({label:`Profile: ${profileScore}/15`,pts:profileScore,max:15,done:profileScore>=15});
 
   // 5. Network uploaded (10 points)
-  if(S.netData&&S.netData.length>10){score+=10;breakdown.push('Network ✓');}
+  if(S.netData&&S.netData.length>10){score+=10;breakdown.push({label:`Network: ${S.netData.length} contacts`,pts:10,max:10,done:true});}
+  else breakdown.push({label:'Network not uploaded',pts:0,max:10,done:false});
 
-  // 6. Active job search (10 points) — applied in last 3 days
+  // 6. Active job search (10 points)
   const recentApps=S.apps.filter(a=>a.date&&a.s!=='tba'&&daysSince(a.date)<=3).length;
-  if(recentApps>0)score+=10;
+  if(recentApps>0){score+=10;breakdown.push({label:'Active this week',pts:10,max:10,done:true});}
+  else breakdown.push({label:'No recent activity',pts:0,max:10,done:false});
 
   // Cap at 100
   score=Math.min(100,score);
@@ -2540,9 +2586,10 @@ function updateCRS(){
   const lblEl=document.getElementById('crsLabel');
   if(numEl)numEl.textContent=score;
   if(arcEl){
-    const circumference=138.2;
+    const circumference=163.4;
     const offset=circumference-(score/100*circumference);
     arcEl.style.strokeDashoffset=offset;
+    arcEl.style.strokeDasharray=circumference;
   }
   const label=score>=80?'🟢 Strong — ready to land offers':
     score>=60?'🟡 Good — keep applying daily':
@@ -2550,8 +2597,32 @@ function updateCRS(){
     '🔴 Early stage — set up your profile';
   if(lblEl)lblEl.textContent=label;
 
+  // Update breakdown items
+  const bdEl=document.getElementById('crsBreakdownItems');
+  if(bdEl){
+    bdEl.innerHTML=breakdown.map(b=>`
+      <div style="display:flex;align-items:center;gap:4px;">
+        <span style="font-size:9px;">${b.done?'✅':'⬜'}</span>
+        <span style="font-family:'DM Mono',monospace;font-size:8px;color:${b.done?'var(--accent3)':'var(--muted2)'};">${b.label}</span>
+        <span style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);margin-left:auto;">${b.pts}/${b.max}</span>
+      </div>`).join('');
+  }
+
+  // Update quick stats
+  const dayEl=document.getElementById('crsDay');
+  const appsEl=document.getElementById('crsApps');
+  const intEl=document.getElementById('crsInterviews');
+  if(dayEl)dayEl.textContent=calcDay();
+  if(appsEl)appsEl.textContent=S.apps.filter(a=>a.s!=='tba').length;
+  if(intEl)intEl.textContent=S.apps.filter(a=>a.s==='3'||a.s==='4').length;
+
   // Update action row
   updateActionRow();
+}
+
+function toggleCrsBreakdown(){
+  const el=document.getElementById('crsBreakdown');
+  if(el)el.style.display=el.style.display==='none'?'block':'none';
 }
 
 function updateActionRow(){
@@ -2648,10 +2719,65 @@ async function checkOnboarding(){
     document.getElementById('onboarding').classList.add('hide');
     applyProfile();
     loadResumeIntoAnalyser();
+    // Try Firebase restore in background (new data on another device)
+    const key=localStorage.getItem('muki-license-key');
+    if(key&&key!=='DEV-MODE'){
+      restoreFromFirebase(key).then(restored=>{
+        if(restored){renderApps();updateCRS();renderNet();}
+      });
+    }
     return true;
   }
+
+  // Check if license key exists but profile missing (new device scenario)
+  const existingKey=localStorage.getItem('muki-license-key');
+  if(existingKey&&existingKey!=='DEV-MODE'){
+    // Show restore banner on onboarding
+    showFirebaseRestoreBanner(existingKey);
+  }
+
   // Show onboarding
   return false;
+}
+
+function showFirebaseRestoreBanner(key){
+  const step1=document.getElementById('ob-step1');
+  if(!step1)return;
+  const banner=document.createElement('div');
+  banner.style.cssText='background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);border-radius:10px;padding:12px 14px;margin-bottom:14px;';
+  banner.innerHTML=`<div style="font-family:'Syne',sans-serif;font-weight:700;font-size:11px;margin-bottom:4px;">🔄 Welcome back — restoring your data</div>
+    <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted2);margin-bottom:8px;">License key found: ${key}. Checking for your saved data...</div>
+    <button onclick="restoreAndLaunch('${key}')" style="background:linear-gradient(90deg,var(--accent2),var(--accent));color:#000;border:none;border-radius:6px;padding:6px 14px;font-family:'Syne',sans-serif;font-weight:700;font-size:11px;cursor:pointer;">🔄 Restore My Dashboard</button>`;
+  step1.insertBefore(banner,step1.firstChild);
+}
+
+async function restoreAndLaunch(key){
+  const btn=event.target;
+  btn.textContent='⏳ Restoring...';btn.disabled=true;
+  await loadState();
+  const restored=await restoreFromFirebase(key);
+  if(restored&&S.apps&&S.apps.length>0){
+    // Try to load profile from Firebase
+    try{
+      const res=await fetch(`${FIREBASE_URL}/userProfiles/${encodeURIComponent(key)}.json`);
+      if(res.ok){
+        const data=await res.json();
+        if(data){
+          PROFILE=data;
+          await window.storage.set('muki-profile',JSON.stringify(PROFILE));
+          document.getElementById('onboarding').classList.add('hide');
+          applyProfile();renderApps();renderTasks();updateDay();
+          showToast('✅ Dashboard restored successfully');
+          return;
+        }
+      }
+    }catch(e){}
+    btn.textContent='⚠️ Profile not found — please complete setup';
+    btn.disabled=false;
+  } else {
+    btn.textContent='No saved data found — complete setup below';
+    btn.disabled=false;
+  }
 }
 
 
@@ -2747,7 +2873,58 @@ async function loadState(){
 
 async function persist(){
   clearTimeout(saveT);
-  saveT=setTimeout(async()=>{try{await window.storage.set('muki-v4',JSON.stringify(S));flash();}catch(e){}},400);
+  saveT=setTimeout(async()=>{
+    try{
+      await window.storage.set('muki-v4',JSON.stringify(S));flash();
+      // Background sync to Firebase if license key exists
+      syncToFirebase();
+    }catch(e){}
+  },400);
+}
+
+// ════════════════════════════════════════════════
+// FIREBASE SYNC — backup + restore across devices
+// ════════════════════════════════════════════════
+async function syncToFirebase(){
+  try{
+    const key=localStorage.getItem('muki-license-key');
+    if(!key||key==='DEV-MODE')return;
+    const payload={
+      apps:S.apps||[],
+      startDate:S.startDate||null,
+      notes:S.notes||'',
+      netContacted:S.netContacted||{},
+      prefs:S.prefs||{},
+      syncedAt:new Date().toISOString()
+    };
+    await fetch(`${FIREBASE_URL}/userSync/${encodeURIComponent(key)}.json`,{
+      method:'PATCH',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
+    });
+  }catch(e){}
+}
+
+async function restoreFromFirebase(key){
+  try{
+    if(!key||key==='DEV-MODE')return false;
+    const res=await fetch(`${FIREBASE_URL}/userSync/${encodeURIComponent(key)}.json`);
+    if(!res.ok)return false;
+    const data=await res.json();
+    if(!data||!data.syncedAt)return false;
+    // Only restore if Firebase has more recent data
+    if(data.apps&&data.apps.length>0){
+      if(!S.apps||S.apps.length===0||(data.apps.length>S.apps.length)){
+        S.apps=data.apps;
+      }
+    }
+    if(data.startDate&&!S.startDate)S.startDate=data.startDate;
+    if(data.notes&&!S.notes)S.notes=data.notes;
+    if(data.netContacted)Object.assign(S.netContacted,data.netContacted);
+    if(data.prefs&&!Object.keys(S.prefs||{}).length)S.prefs=data.prefs;
+    await window.storage.set('muki-v4',JSON.stringify(S));
+    return true;
+  }catch(e){return false;}
 }
 
 // ════════════════════════════════════════════════
@@ -3997,7 +4174,58 @@ async function checkAutoApplyNotifications(){
   }catch(e){}
 }
 
-function dismissAaNotif(){document.getElementById('aaNotifBanner').style.display='none';}
+function dismissReferralNotif(){
+  const el=document.getElementById('referralNotifBar');
+  if(el)el.style.display='none';
+  localStorage.setItem('muki-referral-notif-dismissed',Date.now().toString());
+}
+
+function showReferralNotif(company,role){
+  const bar=document.getElementById('referralNotifBar');
+  const title=document.getElementById('referralNotifTitle');
+  const text=document.getElementById('referralNotifText');
+  if(!bar||!title||!text)return;
+  // Check if dismissed recently (within 6 hours)
+  const dismissed=localStorage.getItem('muki-referral-notif-dismissed');
+  if(dismissed&&Date.now()-parseInt(dismissed)<6*3600*1000)return;
+  title.textContent=`AiMooki applied to ${role||'a role'} at ${company||'a company'} ✅`;
+  text.textContent=`You have connections at ${company||'this company'} — message them now for a referral. Referred applications get 5× more callbacks.`;
+  bar.style.display='block';
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  if(!t)return;
+  t.textContent=msg;
+  t.classList.add('show');
+  setTimeout(()=>{t.classList.remove('show');t.textContent='✓ Saved';},3000);
+}
+
+// Check for referral opportunities after auto-apply notifications
+async function checkReferralOpportunities(){
+  try{
+    const key=localStorage.getItem('muki-license-key');
+    if(!key)return;
+    const res=await fetch(`https://muki-job-server.onrender.com/notifications?licenseKey=${encodeURIComponent(key)}`,{signal:AbortSignal.timeout(6000)});
+    if(!res.ok)return;
+    const data=await res.json();
+    const unread=(data.notifications||[]).filter(n=>!n.read&&n.type==='auto_apply');
+    if(!unread.length)return;
+    // Find if any applied company has network connections
+    if(S.netData&&S.netData.length>0){
+      for(const notif of unread){
+        const company=notif.company||'';
+        if(!company)continue;
+        const parent=getParentCompany(company);
+        const hasConn=S.netData.some(c=>getParentCompany(c.company||'')===parent);
+        if(hasConn){
+          showReferralNotif(company,notif.role);
+          break;
+        }
+      }
+    }
+  }catch(e){}
+}
 
 function viewAutoApplyLog(){
   dismissAaNotif();
@@ -4306,7 +4534,10 @@ async function init(){
     }
   }catch(e){}
   // Check for auto-apply notifications after 4 seconds (server may be waking up)
-  setTimeout(()=>checkAutoApplyNotifications(),4000);
+  setTimeout(()=>{
+    checkAutoApplyNotifications();
+    checkReferralOpportunities();
+  },4000);
 }
 init();
 
