@@ -2140,6 +2140,21 @@ tr:hover td{background:rgba(99,102,241,.03);}
     </div>
   </div>
   <button class="btn" onclick="savePrefs()" style="width:100%;margin-top:10px;">✅ Save Preferences</button>
+
+  <!-- TYPE B — AiMooki Auto-Apply Answers -->
+  <div style="border-top:1px solid var(--border);margin-top:16px;padding-top:14px;">
+    <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:12px;margin-bottom:4px;">🤖 AiMooki Auto-Apply Answers</div>
+    <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted2);margin-bottom:12px;line-height:1.6;">These are used when LinkedIn/Naukri asks open-ended questions during Easy Apply. AiMooki generates them from your profile — or you can customise below.</div>
+    <label class="pref-label">Why do you want to work here? <span style="color:var(--muted);font-size:8px;">(AiMooki generates per company)</span></label>
+    <textarea class="fi" id="pWhyHere" rows="2" placeholder="Leave blank — AiMooki will generate a tailored answer per company using your resume and the JD." style="resize:none;font-size:10px;line-height:1.6;margin-bottom:10px;"></textarea>
+    <label class="pref-label">Tell us about yourself <span style="color:var(--muted);font-size:8px;">(your elevator pitch)</span></label>
+    <textarea class="fi" id="pAboutMe" rows="3" placeholder="e.g. I'm a finance professional with 3 years at KPMG and Deloitte, specialising in FP&A, AP/AR reconciliation, and Power BI reporting. I'm ACCA-qualified and passionate about finance transformation." style="resize:none;font-size:10px;line-height:1.6;margin-bottom:10px;"></textarea>
+    <label class="pref-label">What are your strengths?</label>
+    <textarea class="fi" id="pStrengths" rows="2" placeholder="e.g. Attention to detail, Advanced Excel and Power BI, stakeholder management, quick learner with new systems like SAP." style="resize:none;font-size:10px;line-height:1.6;margin-bottom:10px;"></textarea>
+    <label class="pref-label">What are your salary expectations?</label>
+    <input class="fi" id="pSalaryExpectation" placeholder="e.g. 10-12 LPA based on role and responsibilities" style="margin-bottom:10px;">
+    <button class="btn" onclick="savePrefs()" style="width:100%;background:rgba(99,102,241,.15);color:var(--accent2);border:1px solid rgba(99,102,241,.3);">💾 Save All Preferences</button>
+  </div>
 </div></div></div>
 
 <!-- ADD CUSTOM TASK MODAL -->
@@ -2272,32 +2287,27 @@ function obShowStep(n){
 
 // ── Step 1: Validate license key ──────────────────────
 async function validateKey(){
-  // ── DEV MODE: license check disabled until final version ──
-  // TODO: re-enable for final product release
-  localStorage.setItem('muki-license-key','DEV-MODE');
-  obShowStep(2);
-  /* PRODUCTION CODE (uncomment for final version):
   const key=document.getElementById('ob-key').value.trim().toUpperCase();
   const errEl=document.getElementById('ob-key-err');
   const btn=document.getElementById('ob-key-btn');
   if(!key){errEl.textContent='Please enter your license key.';errEl.classList.add('show');return;}
   errEl.classList.remove('show');
   btn.disabled=true;
-  document.getElementById('ob-key-icon').textContent='Validating...';
+  document.getElementById('ob-key-icon').innerHTML='<span class="btn-laser" style="font-size:10px;font-family:\'DM Mono\',monospace;">Validating</span>';
   try{
     const res=await fetch(`${FIREBASE_URL}/licenses/${key}.json`);
     const data=await res.json();
-    if(!data){errEl.textContent='Invalid license key.';errEl.classList.add('show');btn.disabled=false;document.getElementById('ob-key-icon').textContent='Validate Key →';return;}
-    if(data.expiry&&new Date(data.expiry)<new Date()){errEl.textContent='License key expired.';errEl.classList.add('show');btn.disabled=false;document.getElementById('ob-key-icon').textContent='Validate Key →';return;}
+    if(!data||data===null){errEl.textContent='Invalid license key. Please check and try again.';errEl.classList.add('show');btn.disabled=false;document.getElementById('ob-key-icon').textContent='Validate Key →';return;}
+    if(data.expiry&&new Date(data.expiry)<new Date()){errEl.textContent='This license key has expired. Please renew to continue.';errEl.classList.add('show');btn.disabled=false;document.getElementById('ob-key-icon').textContent='Validate Key →';return;}
+    if(!data.active){errEl.textContent='License key is not active. Please contact support.';errEl.classList.add('show');btn.disabled=false;document.getElementById('ob-key-icon').textContent='Validate Key →';return;}
     const deviceId=getDeviceId();
-    if(data.deviceId&&data.deviceId!==deviceId){errEl.textContent='Key already activated on another device.';errEl.classList.add('show');btn.disabled=false;document.getElementById('ob-key-icon').textContent='Validate Key →';return;}
+    if(data.deviceId&&data.deviceId!==deviceId){errEl.textContent='Key already activated on another device. Contact support to transfer.';errEl.classList.add('show');btn.disabled=false;document.getElementById('ob-key-icon').textContent='Validate Key →';return;}
     if(!data.deviceId){await fetch(`${FIREBASE_URL}/licenses/${key}.json`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceId,activatedAt:new Date().toISOString()})});}
     localStorage.setItem('muki-license-key',key);
     localStorage.setItem('muki-device-id',deviceId);
     btn.disabled=false;
     obShowStep(2);
-  }catch(e){errEl.textContent='Network error.';errEl.classList.add('show');btn.disabled=false;document.getElementById('ob-key-icon').textContent='Validate Key →';}
-  */
+  }catch(e){errEl.textContent='Network error. Check your connection and try again.';errEl.classList.add('show');btn.disabled=false;document.getElementById('ob-key-icon').textContent='Validate Key →';}
 }
 
 // ── Device fingerprint ─────────────────────────────────
@@ -3596,7 +3606,10 @@ function renderNetList(conns,newNames){
   if(prevBtn){prevBtn.disabled=_netPage===0;prevBtn.style.opacity=_netPage===0?'0.4':'1';}
   if(nextBtn){nextBtn.disabled=_netPage>=totalPages-1;nextBtn.style.opacity=_netPage>=totalPages-1?'0.4':'1';}
 
-  list.innerHTML=pageParents.map(([parent,data],pidx)=>{
+  // Show referral cards for companies with 0 connections at TOP
+  renderZeroConnectionReferrals(sortedParents,list,true);
+
+  list.innerHTML+=pageParents.map(([parent,data],pidx)=>{
     const branches=Object.entries(data.branches).sort((a,b)=>b[1].length-a[1].length);
     const allPeople=Object.values(data.branches).flat();
     const contacted=allPeople.filter(p=>S.netContacted[p.name]==='contacted').length;
@@ -3658,8 +3671,7 @@ function renderNetList(conns,newNames){
     </div>`;
   }).join('');
 
-  // Show referral cards for companies with 0 connections (only on page 1)
-  if(_netPage===0) renderZeroConnectionReferrals(sortedParents,list);
+  // Zero connection cards shown at top already
 }
 
 function openCompanyModal(pidx){
@@ -3756,9 +3768,10 @@ function buildReferralSearch(company,count){
   </div>`;
 }
 
-function renderZeroConnectionReferrals(sortedParents,list){
+function renderZeroConnectionReferrals(sortedParents,list,atTop=false){
   // Get target companies from PROFILE that have no connections
   if(!PROFILE?.role)return;
+  if(!atTop&&_netPage!==0)return;
   const targetCos=['KPMG','Deloitte','EY','PwC','JPMorgan','Goldman Sachs','HSBC','Citibank','Accenture','Genpact','WNS','Infosys BPM'];
   const existingCos=sortedParents.map(([p])=>p.toLowerCase());
   const missing=targetCos.filter(co=>!existingCos.some(e=>e.includes(co.toLowerCase().split(' ')[0])));
@@ -3771,7 +3784,12 @@ function renderZeroConnectionReferrals(sortedParents,list){
         <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);">find contacts →</div>
       </div>
     </div>`).join('');
-  list.innerHTML+=`<div style="margin-top:16px;"><div style="font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px;">🎯 Target Companies — Build Your Network</div><div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;">${zeroHtml}</div></div>`;
+  const section=`<div style="margin-bottom:16px;"><div style="font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px;">🎯 Target Companies — Build Your Network</div><div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;">${zeroHtml}</div></div>`;
+  if(atTop){
+    list.innerHTML=section;
+  } else {
+    list.innerHTML+=section;
+  }
 }
 
 function openReferralLayers(company){
@@ -4419,6 +4437,11 @@ function openPrefs(){
   document.getElementById('pWorkAuth').value=p.workAuth||'indian_citizen';
   document.getElementById('pNightShift').value=p.nightShift||'no';
   toggleNoticeField();
+  // Type B fields
+  if(document.getElementById('pWhyHere'))document.getElementById('pWhyHere').value=p.whyHere||'';
+  if(document.getElementById('pAboutMe'))document.getElementById('pAboutMe').value=p.aboutMe||'';
+  if(document.getElementById('pStrengths'))document.getElementById('pStrengths').value=p.strengths||'';
+  if(document.getElementById('pSalaryExpectation'))document.getElementById('pSalaryExpectation').value=p.salaryExpectation||'';
   document.getElementById('prefsModal').classList.add('show');
 }
 function toggleNoticeField(){
@@ -4437,6 +4460,11 @@ function savePrefs(){
     relocate:document.getElementById('pRelocate').value,
     workAuth:document.getElementById('pWorkAuth').value,
     nightShift:document.getElementById('pNightShift').value,
+    // Type B answers
+    whyHere:document.getElementById('pWhyHere')?.value||'',
+    aboutMe:document.getElementById('pAboutMe')?.value||'',
+    strengths:document.getElementById('pStrengths')?.value||'',
+    salaryExpectation:document.getElementById('pSalaryExpectation')?.value||'',
   };
   persist();closeModal('prefsModal');flash();
 }
