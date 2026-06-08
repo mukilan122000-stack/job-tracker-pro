@@ -3229,7 +3229,7 @@ async function pingServer(){
   btn.disabled=true;icon.classList.add('spin');
   try{
     // Wake up Render server (it sleeps after inactivity)
-    await fetch('https://muki-job-server.onrender.com/ping',{mode:'no-cors'}).catch(()=>{});
+    await fetch('http://13.201.32.8:3000/ping',{mode:'no-cors'}).catch(()=>{});
   }catch(e){}
   // Wait 2s for server to wake, then fetch fresh jobs
   setTimeout(async()=>{
@@ -4212,7 +4212,7 @@ async function checkAutoApplyNotifications(){
   try{
     const key=localStorage.getItem('muki-license-key');
     if(!key||key==='DEV-MODE'&&!localStorage.getItem('show-dev-notif'))return;
-    const res=await fetch(`https://muki-job-server.onrender.com/notifications?licenseKey=${encodeURIComponent(key)}`,{signal:AbortSignal.timeout(8000)});
+    const res=await fetch(`http://13.201.32.8:3000/notifications?licenseKey=${encodeURIComponent(key)}`,{signal:AbortSignal.timeout(8000)});
     if(!res.ok)return;
     const data=await res.json();
     const unread=(data.notifications||[]).filter(n=>!n.read&&n.type==='auto_apply');
@@ -4223,7 +4223,7 @@ async function checkAutoApplyNotifications(){
     document.getElementById('aaNotifText').textContent=text;
     document.getElementById('aaNotifBanner').style.display='block';
     // Mark as read after showing
-    fetch(`https://muki-job-server.onrender.com/notifications/mark-read`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({licenseKey:key})}).catch(()=>{});
+    fetch(`http://13.201.32.8:3000/notifications/mark-read`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({licenseKey:key})}).catch(()=>{});
   }catch(e){}
 }
 
@@ -4259,7 +4259,7 @@ async function checkReferralOpportunities(){
   try{
     const key=localStorage.getItem('muki-license-key');
     if(!key)return;
-    const res=await fetch(`https://muki-job-server.onrender.com/notifications?licenseKey=${encodeURIComponent(key)}`,{signal:AbortSignal.timeout(6000)});
+    const res=await fetch(`http://13.201.32.8:3000/notifications?licenseKey=${encodeURIComponent(key)}`,{signal:AbortSignal.timeout(6000)});
     if(!res.ok)return;
     const data=await res.json();
     const unread=(data.notifications||[]).filter(n=>!n.read&&n.type==='auto_apply');
