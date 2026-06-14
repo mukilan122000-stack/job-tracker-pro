@@ -2434,7 +2434,7 @@ async function generateDashboard(){
     await window.storage.set('muki-profile',JSON.stringify(PROFILE));
     await window.storage.set('muki-tasks',JSON.stringify(tasks));
     // Save profile to Firebase for cross-device restore
-    if(key&&key!=='DEV-MODE'){
+    if(key&&key!=='MUKI-2025-TEST'){
       fetch(`${FIREBASE_URL}/userProfiles/${encodeURIComponent(key)}.json`,{
         method:'PUT',
         headers:{'Content-Type':'application/json'},
@@ -2739,7 +2739,7 @@ async function checkOnboarding(){
     loadResumeIntoAnalyser();
     // Try Firebase restore in background (new data on another device)
     const key=localStorage.getItem('muki-license-key');
-    if(key&&key!=='DEV-MODE'){
+    if(key&&key!=='MUKI-2025-TEST'){
       restoreFromFirebase(key).then(restored=>{
         if(restored){renderApps();updateCRS();renderNet();}
       });
@@ -2749,7 +2749,7 @@ async function checkOnboarding(){
 
   // Check if license key exists but profile missing (new device scenario)
   const existingKey=localStorage.getItem('muki-license-key');
-  if(existingKey&&existingKey!=='DEV-MODE'){
+  if(existingKey&&existingKey!=='MUKI-2025-TEST'){
     // Show restore banner on onboarding
     showFirebaseRestoreBanner(existingKey);
   }
@@ -2906,7 +2906,7 @@ async function persist(){
 async function syncToFirebase(){
   try{
     const key=localStorage.getItem('muki-license-key');
-    if(!key||key==='DEV-MODE')return;
+    if(!key||key==='MUKI-2025-TEST')return;
     const payload={
       apps:S.apps||[],
       startDate:S.startDate||null,
@@ -2925,7 +2925,7 @@ async function syncToFirebase(){
 
 async function restoreFromFirebase(key){
   try{
-    if(!key||key==='DEV-MODE')return false;
+    if(!key||key==='MUKI-2025-TEST')return false;
     const res=await fetch(`${FIREBASE_URL}/userSync/${encodeURIComponent(key)}.json`);
     if(!res.ok)return false;
     const data=await res.json();
@@ -3200,7 +3200,7 @@ function normalizeJob(j,key){
 async function fetchJobs(){
   try{
     setFBStatus('waiting','⏳ Fetching jobs...');
-    const res=await fetch(`${FIREBASE}/jobs.json`);
+    const key=localStorage.getItem('muki-license-key')||'MUKI-2025-TEST';const res=await fetch(`${FIREBASE}/jobs/${key}.json`);
     if(!res.ok)throw new Error(`HTTP ${res.status}`);
     const data=await res.json();
     if(!data||Object.keys(data).length===0){
@@ -4211,7 +4211,7 @@ function downloadIpPDF(){
 async function checkAutoApplyNotifications(){
   try{
     const key=localStorage.getItem('muki-license-key');
-    if(!key||key==='DEV-MODE'&&!localStorage.getItem('show-dev-notif'))return;
+    if(!key||key==='MUKI-2025-TEST'&&!localStorage.getItem('show-dev-notif'))return;
     const res=await fetch(`http://13.201.32.8:3000/notifications?licenseKey=${encodeURIComponent(key)}`,{signal:AbortSignal.timeout(8000)});
     if(!res.ok)return;
     const data=await res.json();
