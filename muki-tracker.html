@@ -3086,7 +3086,7 @@ function renderApps(){
       <td style="color:var(--muted2);">${a.city||'—'}</td>
       <td style="font-family:'DM Mono',monospace;font-size:9px;">${a.date}</td>
       <td><span class="sb ${s.cls}">${s.lbl}</span></td>
-      <td style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted2);">${a.source||'—'}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted2);">${a.source||'—'}${a.via?` <span style="color:var(--accent2);">· ${a.via}</span>`:''}</td>
       <td>${fuCell}</td>
       <td>${a.link?`<a class="al" href="${a.link}" target="_blank">🔗</a>`:'—'}</td>
       <td>${a.jd?`<button class="eye-btn" onclick="viewJD(${i},'${esc(a.co)}')" title="View JD">👁</button>`:'—'}</td>
@@ -3107,7 +3107,7 @@ function renderApps(){
         <div class="app-card-meta">
           <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted2);">📍 ${a.city||'—'}</span>
           <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);">${a.date}</span>
-          ${a.source?`<span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted2);">${a.source}</span>`:''}
+          ${(a.source||a.via)?`<span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted2);">${a.source||''}${a.source&&a.via?' · ':''}${a.via||''}</span>`:''}
           ${fu?`<span style="font-family:'DM Mono',monospace;font-size:9px;padding:2px 6px;border-radius:4px;background:${fu.bg};color:${fu.color};">${fu.label} · ${fu.days}d</span>`:''}
         </div>
         <div class="app-card-actions">
@@ -3231,6 +3231,7 @@ async function fetchJobs(){
     const now=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
     allJobs=jobs;
     window._jobByKey=Object.fromEntries(jobs.map(j=>[j.key,j]));
+    autoLogApplied(jobs);
     setFBStatus('connected',`🟢 Live · ${jobs.length} jobs · Last updated ${now}`);
     renderJobsGrid(jobs,activeCat);
   }catch(e){
@@ -3359,12 +3360,14 @@ function esc(s){return(s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');}
 function applyStatusOf(j){
   const r=(j.autoApplyResult||'').toLowerCase();
   const at=(j.applyType||'').toLowerCase();
-  if(j.autoApplied===true||r==='easy_apply_submitted')return 'applied';
-  if(r==='manual_review'||r==='vision_failed'||at==='manual_review'||at==='error')return 'attention';
+  // Failures win first — a failed/error attempt must never show as "Applied" even if autoApplied flag is set
+  if(['manual_review','vision_failed','failed','error'].includes(r)||at==='manual_review'||at==='error')return 'attention';
+  if(r==='easy_apply_submitted'||j.autoApplied===true)return 'applied';
   if(at==='assisted'||r==='skipped_no_easy_apply')return 'manual';
+  if((j.source||'').toLowerCase().includes('naukri'))return 'manual'; // Naukri has no auto-apply agent yet
   if(j.easyApply===true)return 'queued';
   if(j.easyApply===false)return 'manual';
-  return ''; // unknown (e.g. jobs ingested before easyApply tagging) — no chip
+  return ''; // unknown (e.g. LinkedIn jobs ingested before easyApply tagging) — no chip
 }
 function applyChip(status){
   const m={
@@ -3425,10 +3428,44 @@ function renderJobsGrid(jobs,cat){
   updatePillCounts(jobs);
 }
 
+// How the job is/was applied — shown in the Applied list
+function applyVia(j){
+  const at=(j.applyType||'').toLowerCase();
+  const src=(j.source||'').toLowerCase();
+  if(at==='easy_apply'||(src==='linkedin'&&j.easyApply===true))return 'Easy Apply';
+  if(src==='naukri'||at==='manual')return 'Manual';
+  if(src==='linkedin')return 'External';
+  return 'Manual';
+}
+// One-click: log an applied job straight into the tracker — no manual form
 function logJob(i){
   const j=(window._jobs||[])[i];if(!j)return;
-  goTab('apps',document.querySelectorAll('.tb')[1]);
-  setTimeout(()=>{document.getElementById('aCo').value=j.company||'';document.getElementById('aRole').value=j.role||'';document.getElementById('aCity').value=j.location||'';document.getElementById('aLink').value=j.applyUrl||'';document.getElementById('aJD').value=j.jdSnippet||j.summary||'';document.getElementById('aCo').scrollIntoView({behavior:'smooth'});},100);
+  if(!Array.isArray(S.apps))S.apps=[];
+  if(j.applyUrl&&S.apps.some(a=>a.link===j.applyUrl)){showToast('Already in your applications');return;}
+  S.apps.unshift({
+    co:j.company||'', role:j.role||'', city:j.city||(j.location||'').split(/[\/,]/)[0].trim()||'',
+    date:new Date().toISOString().slice(0,10), s:'0',
+    source:j.source||'', link:j.applyUrl||'', jd:j.jdSnippet||j.summary||'', notes:'', via:applyVia(j),
+  });
+  persist();renderApps();updateStats();
+  showToast(`✓ Logged: ${j.role} @ ${j.company}`);
+}
+// Auto-flow successfully auto-applied jobs into the tracker (deduped by link)
+function autoLogApplied(jobs){
+  if(!Array.isArray(S.apps))S.apps=[];
+  let added=0;
+  for(const j of jobs){
+    if(j.autoApplied===true&&j.autoApplyResult==='easy_apply_submitted'&&j.applyUrl){
+      if(S.apps.some(a=>a.link===j.applyUrl))continue;
+      S.apps.unshift({
+        co:j.company||'', role:j.role||'', city:j.city||(j.location||'').split(/[\/,]/)[0].trim()||'',
+        date:(j.autoAppliedAt||new Date().toISOString()).slice(0,10), s:'0',
+        source:j.source||'', link:j.applyUrl||'', jd:j.jdSnippet||j.summary||'', notes:'Auto-applied by AiMooki', via:'Easy Apply (auto)',
+      });
+      added++;
+    }
+  }
+  if(added){persist();renderApps();updateStats();}
 }
 
 // ════════════════════════════════════════════════
