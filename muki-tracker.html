@@ -3277,12 +3277,16 @@ function srcBadge(source,url){
   return url?`<a href="${url}" target="_blank" title="Apply on ${source}" style="${style}">${label}</a>`:`<span style="${style}">${label}</span>`;
 }
 
-function ageBadge(ts){
+function ageBadge(j){
+  // Reposts are never "new" to us, even if their posted date is recent.
+  if(j&&j.repost===true)return`<span style="background:rgba(100,100,120,.1);color:var(--muted);border:1px solid var(--border);font-family:'DM Mono',monospace;font-size:7px;font-weight:700;padding:1px 5px;border-radius:3px;">↻ repost</span>`;
+  // Freshness keyed off when WE first saw it (firstSeenAt), falling back to timestamp for pre-tagging jobs.
+  const ts=(j&&(j.firstSeenAt||j.timestamp))||0;
   if(!ts)return'';
   const hrs=(Date.now()-ts)/3600000;
   if(hrs<48)return`<span style="background:rgba(16,185,129,.1);color:#34d399;border:1px solid rgba(16,185,129,.2);font-family:'DM Mono',monospace;font-size:7px;font-weight:700;padding:1px 5px;border-radius:3px;">🟢 NEW</span>`;
   if(hrs<168)return`<span style="background:rgba(245,158,11,.1);color:#fbbf24;border:1px solid rgba(245,158,11,.2);font-family:'DM Mono',monospace;font-size:7px;padding:1px 5px;border-radius:3px;">🟡 RECENT</span>`;
-  return`<span style="background:rgba(100,100,120,.08);color:var(--muted);border:1px solid var(--border);font-family:'DM Mono',monospace;font-size:7px;padding:1px 5px;border-radius:3px;">REPOSTED</span>`;
+  return'';
 }
 
 function dedupeJobs(jobs){
@@ -3398,7 +3402,7 @@ function renderJobsGrid(jobs,cat){
       ${j.priority?'<span style="position:absolute;top:10px;left:12px;font-size:11px;">⭐</span>':''}
       <span class="fitb ${fitCls[j.fit]||'fm'}" style="position:absolute;top:10px;right:10px;">${j.fit||'–'}</span>
       <div style="display:flex;align-items:center;gap:5px;margin-bottom:6px;flex-wrap:wrap;${j.priority?'padding-left:18px;':`padding-top:2px;`}">
-        ${ageBadge(j.timestamp)}
+        ${ageBadge(j)}
         ${applyChip(j.applyStatus)}
       </div>
       <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:var(--accent);line-height:1.3;margin-bottom:3px;padding-right:44px;">${j.role||'–'}</div>
