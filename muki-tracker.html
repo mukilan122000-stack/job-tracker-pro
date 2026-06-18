@@ -3090,7 +3090,7 @@ function renderApps(){
       <td>${fuCell}</td>
       <td>${a.link?`<a class="al" href="${a.link}" target="_blank">🔗</a>`:'—'}</td>
       <td>${a.jd?`<button class="eye-btn" onclick="viewJD(${i},'${esc(a.co)}')" title="View JD">👁</button>`:'—'}</td>
-      <td>${a.notes?`<button class="eye-btn" onclick="viewNotes(${i},'${esc(a.co)}')" title="View Notes">👁</button>`:'—'}</td>
+      <td>${a.notes?`<button class="eye-btn" onclick="viewNotes(${i},'${esc(a.co)}')" title="View Notes">👁</button> `:''}${(a.answers&&a.answers.length)?`<button class="eye-btn" onclick="viewAnswers(${i},'${esc(a.co)}')" title="Answers submitted">💬${a.answers.length}</button>`:''}${(!a.notes&&!(a.answers&&a.answers.length))?'—':''}</td>
       <td><button class="eye-btn" onclick="openEditApp(${i})" title="Edit" style="margin-right:2px;">✏️</button><button class="del" onclick="delApp(${i})">🗑</button></td>
     </tr>`;
   }).join('');
@@ -3114,6 +3114,7 @@ function renderApps(){
           ${a.link?`<a class="al" href="${a.link}" target="_blank" style="font-size:10px;">🔗 Link</a>`:''}
           ${a.jd?`<button class="eye-btn" onclick="viewJD(${i},'${esc(a.co)}')" style="font-size:12px;">👁 JD</button>`:''}
           ${a.notes?`<button class="eye-btn" onclick="viewNotes(${i},'${esc(a.co)}')" style="font-size:12px;">👁 Notes</button>`:''}
+          ${(a.answers&&a.answers.length)?`<button class="eye-btn" onclick="viewAnswers(${i},'${esc(a.co)}')" style="font-size:12px;">💬 ${a.answers.length}</button>`:''}
           ${fu&&fu.days>=7?`<button class="eye-btn" onclick="showFU(${i})" style="color:var(--warn);font-size:11px;">📧 FU</button>`:''}
           <button class="eye-btn" onclick="openEditApp(${i})" style="font-size:12px;">✏️</button>
           <button class="del" onclick="delApp(${i})" style="margin-left:auto;">🗑</button>
@@ -3135,6 +3136,14 @@ function renderFUBar(){
 function delApp(i){if(!confirm('Delete?'))return;S.apps.splice(i,1);persist();renderApps();updateStats();}
 function viewJD(i,co){document.getElementById('modalJDTitle').textContent=co+' — Job Description';document.getElementById('modalJDBody').textContent=S.apps[i].jd||'No JD saved.';document.getElementById('modalJD').classList.add('show');}
 function viewNotes(i,co){document.getElementById('modalNotesTitle').textContent='Notes — '+co;document.getElementById('modalNotesBody').textContent=S.apps[i].notes||'No notes saved.';document.getElementById('modalNotes').classList.add('show');}
+function viewAnswers(i,co){
+  const ans=(S.apps[i]&&S.apps[i].answers)||[];
+  document.getElementById('modalNotesTitle').textContent='Answers submitted — '+co;
+  document.getElementById('modalNotesBody').innerHTML = ans.length
+    ? ans.map(a=>`<div style="margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border);"><div style="font-size:11px;color:var(--muted2);font-family:'DM Mono',monospace;margin-bottom:3px;">${esc(a.q||'')}</div><div style="font-size:13px;color:var(--text);font-weight:600;">${esc(String(a.a||''))}</div></div>`).join('')
+    : 'No answers captured for this application.';
+  document.getElementById('modalNotes').classList.add('show');
+}
 function showFU(i){
   const a=S.apps[i];const d=daysSince(a.date);
   const msg=d>=14?`Hi [Recruiter Name],\n\nI hope you're doing well. I wanted to follow up one last time regarding my application for the ${a.role} position at ${a.co}.\n\nI remain very interested and believe my background in Finance Transformation, Power BI reporting, and ACCA qualifications would be a strong fit.\n\nWould you be able to share an update on the hiring timeline?\n\nBest regards,\nMukilan R\n+91 8838527989 | muki31122000@gmail.com`:`Hi [Recruiter Name],\n\nI hope this finds you well. I recently applied for the ${a.role} role at ${a.co} and wanted to follow up.\n\nI'm particularly excited about this opportunity given my experience in Finance Transformation, FP&A reporting, and Power BI automation from my time at KPMG and Deloitte.\n\nI'd love to learn more about next steps when you have a moment.\n\nBest regards,\nMukilan R\n+91 8838527989 | muki31122000@gmail.com`;
@@ -3460,7 +3469,7 @@ function autoLogApplied(jobs){
       S.apps.unshift({
         co:j.company||'', role:j.role||'', city:j.city||(j.location||'').split(/[\/,]/)[0].trim()||'',
         date:(j.autoAppliedAt||new Date().toISOString()).slice(0,10), s:'0',
-        source:j.source||'', link:j.applyUrl||'', jd:j.jdSnippet||j.summary||'', notes:'Auto-applied by AiMooki', via:'Easy Apply (auto)',
+        source:j.source||'', link:j.applyUrl||'', jd:j.jdSnippet||j.summary||'', notes:'Auto-applied by AiMooki', via:'Easy Apply (auto)', answers:Array.isArray(j.autoApplyAnswers)?j.autoApplyAnswers:[],
       });
       added++;
     }
