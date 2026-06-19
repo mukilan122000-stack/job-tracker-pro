@@ -1794,6 +1794,9 @@ tr:hover td{background:rgba(99,102,241,.03);}
     <button class="cp" onclick="filterCat('analytics',this)" id="pill-analytics">📈 Analytics</button>
     <button class="cp" onclick="filterCat('transformation',this)" id="pill-transformation">⚡ Transform</button>
     <button class="cp" onclick="filterCat('controls',this)" id="pill-controls">🛡️ Controls</button>
+    <button class="cp" onclick="filterCat('new',this)" id="pill-new">🆕 Not Applied</button>
+    <button class="cp" onclick="filterCat('applied',this)" id="pill-applied">✓ Applied</button>
+    <button class="cp" onclick="filterCat('rejected',this)" id="pill-rejected">✕ Rejected</button>
   </div>
   <div id="jobsArea"><div style="text-align:center;padding:40px;color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;"><div style="font-size:32px;margin-bottom:10px;">🔴</div><div>Waiting for live jobs — set up LinkedIn/Naukri alerts</div></div></div>
 </div>
@@ -3318,18 +3321,23 @@ function dedupeJobs(jobs){
 }
 
 function updatePillCounts(jobs){
+  const app=j=>applyStatusOf(j)==='applied';
+  const vis=jobs.filter(j=>j.rejected!==true); // rejected excluded from all the active pills
   const counts={
-    all:jobs.length,
-    priority:jobs.filter(j=>j.priority).length,
-    fpa:jobs.filter(j=>j.category==='fpa').length,
-    analytics:jobs.filter(j=>j.category==='analytics').length,
-    transformation:jobs.filter(j=>j.category==='transformation').length,
-    controls:jobs.filter(j=>j.category==='controls').length,
+    all:vis.length,
+    priority:vis.filter(j=>j.priority).length,
+    fpa:vis.filter(j=>j.category==='fpa').length,
+    analytics:vis.filter(j=>j.category==='analytics').length,
+    transformation:vis.filter(j=>j.category==='transformation').length,
+    controls:vis.filter(j=>j.category==='controls').length,
+    new:vis.filter(j=>!app(j)).length,
+    applied:vis.filter(app).length,
+    rejected:jobs.filter(j=>j.rejected===true).length,
   };
   Object.entries(counts).forEach(([cat,n])=>{
     const el=document.getElementById('pill-'+cat);
     if(!el)return;
-    const labels={all:'All',priority:'⭐ Priority',fpa:'📊 FP&A',analytics:'📈 Analytics',transformation:'⚡ Transform',controls:'🛡️ Controls'};
+    const labels={all:'All',priority:'⭐ Priority',fpa:'📊 FP&A',analytics:'📈 Analytics',transformation:'⚡ Transform',controls:'🛡️ Controls',new:'🆕 Not Applied',applied:'✓ Applied',rejected:'✕ Rejected'};
     el.textContent=n>0?`${labels[cat]} (${n})`:labels[cat];
   });
 }
@@ -3396,8 +3404,17 @@ function renderJobsGrid(jobs,cat){
     area.innerHTML=`<div style="text-align:center;padding:40px;color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;"><div style="font-size:32px;margin-bottom:10px;">🔴</div>No jobs yet — set up alerts above.</div>`;
     return;
   }
-  let list=cat==='all'?jobs:cat==='priority'?jobs.filter(j=>j.priority):jobs.filter(j=>j.category===cat);
-  if(!list.length)list=jobs;
+  const isRejected=j=>j.rejected===true, isApplied=j=>applyStatusOf(j)==='applied';
+  let list;
+  if(cat==='rejected'){ list=jobs.filter(isRejected); }
+  else {
+    const vis=jobs.filter(j=>!isRejected(j)); // rejected jobs are hidden from every other view
+    if(cat==='applied') list=vis.filter(isApplied);
+    else if(cat==='new') list=vis.filter(j=>!isApplied(j));
+    else if(cat==='priority') list=vis.filter(j=>j.priority);
+    else if(cat==='all') list=vis;
+    else { list=vis.filter(j=>j.category===cat); if(!list.length)list=vis; }
+  }
   // Deduplicate
   list=dedupeJobs(list);
   const fitCls={High:'fh',Medium:'fm',Low:'fl2'};
@@ -3428,7 +3445,12 @@ function renderJobsGrid(jobs,cat){
       ${tags?`<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;">${tags}</div>`:''}
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;padding-top:6px;border-top:1px solid var(--border);">
         <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">${badgesHtml}</div>
-        <span style="font-family:'DM Mono',monospace;font-size:9px;font-weight:700;padding:5px 12px;border-radius:5px;background:rgba(16,185,129,.08);color:var(--accent3);border:1px solid rgba(16,185,129,.15);cursor:pointer;" onclick="logJob(${i})">+ Log It</span>
+        <div style="display:flex;align-items:center;gap:6px;">
+          ${j.rejected
+            ? `<span style="font-family:'DM Mono',monospace;font-size:9px;font-weight:700;padding:5px 10px;border-radius:5px;background:rgba(148,163,184,.1);color:var(--muted2);border:1px solid var(--border2);cursor:pointer;" onclick="restoreJob(${i})" title="Restore to active list">↩ Restore</span>`
+            : `<span style="font-family:'DM Mono',monospace;font-size:9px;font-weight:700;padding:5px 10px;border-radius:5px;background:rgba(248,113,113,.08);color:var(--danger);border:1px solid rgba(248,113,113,.18);cursor:pointer;" onclick="rejectJob(${i})" title="Not interested — hide this job">✕ Reject</span>`}
+          <span style="font-family:'DM Mono',monospace;font-size:9px;font-weight:700;padding:5px 12px;border-radius:5px;background:rgba(16,185,129,.08);color:var(--accent3);border:1px solid rgba(16,185,129,.15);cursor:pointer;" onclick="logJob(${i})">+ Log It</span>
+        </div>
       </div>
     </div>`;
   }).join('');
@@ -3454,10 +3476,29 @@ function logJob(i){
   S.apps.unshift({
     co:j.company||'', role:j.role||'', city:j.city||(j.location||'').split(/[\/,]/)[0].trim()||'',
     date:new Date().toISOString().slice(0,10), s:'0',
-    source:j.source||'', link:j.applyUrl||'', jd:j.jdSnippet||j.summary||'', notes:'', via:applyVia(j),
+    source:j.source||'', link:j.applyUrl||'', jd:j.fullJD||j.jdSnippet||j.summary||'', notes:'', via:applyVia(j),
   });
   persist();renderApps();updateStats();
   showToast(`✓ Logged: ${j.role} @ ${j.company}`);
+}
+// Reject / restore — persisted to Firebase so it sticks + the apply queue can skip it
+function rejectJob(i){
+  const j=(window._jobs||[])[i];if(!j||!j.key)return;
+  const lk=localStorage.getItem('muki-license-key')||'MUKI-2025-TEST';
+  fetch(`${FIREBASE}/jobs/${lk}/${j.key}.json`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({rejected:true,rejectedAt:new Date().toISOString()})}).catch(()=>{});
+  j.rejected=true;
+  const idx=(allJobs||[]).findIndex(x=>x.key===j.key);if(idx>=0)allJobs[idx].rejected=true;
+  renderJobsGrid(allJobs,activeCat);
+  showToast(`✕ Rejected: ${j.role||'job'}`);
+}
+function restoreJob(i){
+  const j=(window._jobs||[])[i];if(!j||!j.key)return;
+  const lk=localStorage.getItem('muki-license-key')||'MUKI-2025-TEST';
+  fetch(`${FIREBASE}/jobs/${lk}/${j.key}.json`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({rejected:null,rejectedAt:null})}).catch(()=>{});
+  j.rejected=false;
+  const idx=(allJobs||[]).findIndex(x=>x.key===j.key);if(idx>=0)allJobs[idx].rejected=false;
+  renderJobsGrid(allJobs,activeCat);
+  showToast(`↩ Restored: ${j.role||'job'}`);
 }
 // Auto-flow successfully auto-applied jobs into the tracker (deduped by link)
 function autoLogApplied(jobs){
@@ -3469,7 +3510,7 @@ function autoLogApplied(jobs){
       S.apps.unshift({
         co:j.company||'', role:j.role||'', city:j.city||(j.location||'').split(/[\/,]/)[0].trim()||'',
         date:(j.autoAppliedAt||new Date().toISOString()).slice(0,10), s:'0',
-        source:j.source||'', link:j.applyUrl||'', jd:j.jdSnippet||j.summary||'', notes:'Auto-applied by AiMooki', via:'Easy Apply (auto)', answers:Array.isArray(j.autoApplyAnswers)?j.autoApplyAnswers:[],
+        source:j.source||'', link:j.applyUrl||'', jd:j.fullJD||j.jdSnippet||j.summary||'', notes:'Auto-applied by AiMooki', via:'Easy Apply (auto)', answers:Array.isArray(j.autoApplyAnswers)?j.autoApplyAnswers:[],
       });
       added++;
     }
