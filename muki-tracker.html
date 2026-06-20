@@ -2886,7 +2886,7 @@ const TASKS={
 const FIREBASE='https://muki-job-tracker-v2-default-rtdb.firebaseio.com';
 
 let S={tasks:{},apps:[],startDate:null,notes:'',netData:null,netDate:null,netContacted:{},prefs:{}};
-let allJobs=[],activeCat='all';
+let allJobs=[],activeCat='all',jobPage=1;
 let saveT=null;
 
 // ════════════════════════════════════════════════
@@ -3280,7 +3280,18 @@ async function pingServer(){
   },2000);
 }
 
-function filterCat(cat,btn){activeCat=cat;document.querySelectorAll('.cp').forEach(b=>b.classList.remove('on'));btn.classList.add('on');renderJobsGrid(allJobs,cat);}
+function filterCat(cat,btn){activeCat=cat;jobPage=1;document.querySelectorAll('.cp').forEach(b=>b.classList.remove('on'));btn.classList.add('on');renderJobsGrid(allJobs,cat);}
+function goPage(n){jobPage=n;renderJobsGrid(allJobs,activeCat);const a=document.getElementById('jobsArea');if(a)a.scrollIntoView({behavior:'smooth',block:'start'});}
+function pageBar(cur,total){
+  if(total<=1)return '';
+  const b=(n,label,disabled,active)=>`<button onclick="goPage(${n})" ${disabled?'disabled':''} style="font-family:'DM Mono',monospace;font-size:11px;padding:6px 11px;border-radius:7px;border:1px solid ${active?'rgba(99,102,241,.45)':'var(--border)'};background:${active?'rgba(99,102,241,.14)':'rgba(255,255,255,.03)'};color:${active?'var(--accent-light)':'var(--muted2)'};cursor:${disabled?'default':'pointer'};opacity:${disabled?'.4':'1'};">${label}</button>`;
+  let nums='';
+  const start=Math.max(1,cur-2), end=Math.min(total,cur+2);
+  if(start>1){nums+=b(1,'1',false,false);if(start>2)nums+='<span style="color:var(--muted);padding:0 3px;">…</span>';}
+  for(let n=start;n<=end;n++)nums+=b(n,String(n),false,n===cur);
+  if(end<total){if(end<total-1)nums+='<span style="color:var(--muted);padding:0 3px;">…</span>';nums+=b(total,String(total),false,false);}
+  return `<div style="display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;margin-top:20px;">${b(cur-1,'‹ Prev',cur<=1,false)}${nums}${b(cur+1,'Next ›',cur>=total,false)}</div>`;
+}
 
 function timeAgo(ts){
   if(!ts)return'';
@@ -3424,14 +3435,22 @@ function renderJobsGrid(jobs,cat){
     const vis=jobs.filter(j=>!isRejected(j)); // rejected jobs are hidden from every other view
     if(cat==='applied') list=vis.filter(isApplied);
     else if(cat==='new') list=vis.filter(j=>!isApplied(j));
-    else if(cat==='priority') list=vis.filter(j=>j.priority);
-    else if(cat==='all') list=vis;
-    else { list=vis.filter(j=>j.category===cat); if(!list.length)list=vis; }
+    else {
+      const active=vis.filter(j=>!isApplied(j)); // applied jobs move to the Applications tab — hidden from the active views
+      if(cat==='priority') list=active.filter(j=>j.priority);
+      else if(cat==='all') list=active;
+      else { list=active.filter(j=>j.category===cat); if(!list.length)list=active; }
+    }
   }
   // Deduplicate
   list=dedupeJobs(list);
+  // Paginate — 12 per page so you're not scrolling hundreds of cards
+  const PAGE_SIZE=12;
+  const totalPages=Math.max(1,Math.ceil(list.length/PAGE_SIZE));
+  if(jobPage>totalPages)jobPage=totalPages; if(jobPage<1)jobPage=1;
+  const pageList=list.slice((jobPage-1)*PAGE_SIZE,jobPage*PAGE_SIZE);
   const fitCls={High:'fh',Medium:'fm',Low:'fl2'};
-  const cards=list.map((j,i)=>{
+  const cards=pageList.map((j,i)=>{
     // Source badges - use _sources if available (deduped), else single source
     const sources=j._sources&&j._sources.length?j._sources:[{source:j.source||'',url:j.applyUrl||''}];
     const uniqueSources=[...new Map(sources.map(s=>[s.source,s])).values()];
@@ -3467,8 +3486,8 @@ function renderJobsGrid(jobs,cat){
       </div>
     </div>`;
   }).join('');
-  area.innerHTML=`<div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted2);margin-bottom:12px;">${list.length} listing${list.length!==1?'s':''} · Tap source badge to apply</div><div class="jgrid">${cards}</div>`;
-  window._jobs=list;
+  area.innerHTML=`<div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted2);margin-bottom:12px;">${list.length} listing${list.length!==1?'s':''} · page ${jobPage} of ${totalPages} · tap source badge to apply</div><div class="jgrid">${cards}</div>${pageBar(jobPage,totalPages)}`;
+  window._jobs=pageList; // handlers (logJob/rejectJob) index into the current page
   updatePillCounts(jobs);
 }
 
