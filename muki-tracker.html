@@ -561,6 +561,36 @@ tr:hover td{background:rgba(99,102,241,.03);}
   transition:all .2s;border-radius:4px;
 }
 .eye-btn:hover{color:var(--accent-light);background:rgba(99,102,241,.08);}
+/* ── Applications table — premium refinements (scoped) ──── */
+.app-table-wrap{
+  border:1px solid var(--border2);
+  border-radius:var(--radius);
+  background:linear-gradient(180deg,rgba(255,255,255,.015),transparent);
+  box-shadow:var(--shadow-sm);
+  max-height:72vh;
+  overflow:auto;
+}
+.app-table-wrap table{border-collapse:separate;border-spacing:0;}
+.app-table-wrap th{
+  position:sticky;top:0;z-index:2;
+  background:rgba(13,13,26,.95);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  color:var(--muted2);
+  padding:11px 12px;
+  border-bottom:1px solid var(--border2);
+}
+.app-table-wrap td{padding:11px 12px;border-bottom:1px solid rgba(255,255,255,.035);}
+.app-table-wrap tbody tr{transition:background .15s;}
+.app-table-wrap tbody tr:last-child td{border-bottom:none;}
+.app-table-wrap tbody tr:hover td{background:rgba(99,102,241,.055);}
+.app-table-wrap tbody tr:hover td:first-child{box-shadow:inset 2px 0 0 var(--accent);}
+.app-table-wrap td:first-child{font-weight:600;color:var(--text);}
+.app-table-wrap th:nth-child(5),.app-table-wrap td:nth-child(5),
+.app-table-wrap th:nth-child(7),.app-table-wrap td:nth-child(7),
+.app-table-wrap th:nth-child(8),.app-table-wrap td:nth-child(8),
+.app-table-wrap th:nth-child(9),.app-table-wrap td:nth-child(9),
+.app-table-wrap th:nth-child(10),.app-table-wrap td:nth-child(10),
+.app-table-wrap th:nth-child(11),.app-table-wrap td:nth-child(11){text-align:center;}
 .fubadge{
   font-family:'DM Mono',monospace;
   font-size:9px;
