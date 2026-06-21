@@ -1800,6 +1800,7 @@ tr:hover td{background:rgba(99,102,241,.03);}
       Loading your profile...
     </div>
   </div>
+  <div id="groqBudget" style="display:none;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:13px 16px;margin-bottom:14px;"></div>
   <div class="cpills" id="catPills">
     <button class="cp on" onclick="filterCat('all',this)" id="pill-all">All</button>
     <button class="cp" onclick="filterCat('priority',this)" id="pill-priority">⭐ Priority</button>
@@ -3237,9 +3238,55 @@ function normalizeJob(j,key){
   };
 }
 
+// ── AI budget widget (Groq token ledger) ─────────────────────────────────────
+// Reads /config/groqUsage/{UTC-day} (written by the server's groqUsage.js) and
+// shows per-model "used / daily token cap" bars. Groq has no remaining-TPD API,
+// so this ledger is the source of truth. All daily caps reset 00:00 UTC = 5:30 AM IST.
+const GROQ_MODELS=[
+  {k:'llama-3_1-8b-instant',                          name:'Llama 3.1 8B · apply',    tpd:500000},
+  {k:'llama-3_3-70b-versatile',                       name:'Llama 3.3 70B · scoring', tpd:100000},
+  {k:'meta-llama_llama-4-scout-17b-16e-instruct',     name:'Llama 4 Scout · vision',  tpd:500000},
+];
+const _fmt=n=>Number(n||0).toLocaleString('en-IN');
+async function fetchGroqBudget(){
+  try{
+    const day=new Date().toISOString().slice(0,10);
+    const res=await fetch(`${FIREBASE}/config/groqUsage/${day}.json`);
+    const data=(res.ok&&await res.json())||{};
+    renderGroqBudget(data);
+  }catch(_){/* silent — non-critical widget */}
+}
+function renderGroqBudget(data){
+  const el=document.getElementById('groqBudget');if(!el)return;
+  // Known models first, then any extra models that show up in the ledger.
+  const rows=[...GROQ_MODELS];
+  Object.keys(data||{}).forEach(k=>{if(!rows.some(m=>m.k===k))rows.push({k,name:k.replace(/_/g,'·'),tpd:0});});
+  const bars=rows.map(m=>{
+    const used=(data[m.k]&&data[m.k].totalTokens)||0;
+    const calls=(data[m.k]&&data[m.k].calls)||0;
+    const pct=m.tpd?Math.min(100,Math.round(used/m.tpd*100)):0;
+    const col=pct>=90?'#f87171':pct>=70?'var(--warn)':'var(--accent3)';
+    const cap=m.tpd?`${_fmt(used)} / ${_fmt(m.tpd)}`:`${_fmt(used)}`;
+    return `<div style="margin-top:9px;">
+      <div style="display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted2);margin-bottom:4px;">
+        <span>${m.name}</span><span style="color:${col};">${cap} tok${m.tpd?` · ${pct}%`:''}${calls?` · ${calls} calls`:''}</span>
+      </div>
+      <div style="height:6px;border-radius:4px;background:rgba(255,255,255,.06);overflow:hidden;">
+        <div style="height:100%;width:${m.tpd?pct:0}%;background:${col};border-radius:4px;transition:width .4s;"></div>
+      </div></div>`;
+  }).join('');
+  const totalUsed=Object.values(data||{}).reduce((s,v)=>s+((v&&v.totalTokens)||0),0);
+  el.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;">
+      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:12px;color:var(--text);">🔋 AI Budget today · ${_fmt(totalUsed)} tokens used</div>
+      <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);">resets 5:30 AM IST</span>
+    </div>${bars}`;
+  el.style.display='block';
+}
+
 async function fetchJobs(){
   try{
     setFBStatus('waiting','⏳ Fetching jobs...');
+    fetchGroqBudget();
     const key=localStorage.getItem('muki-license-key')||'MUKI-2025-TEST';const res=await fetch(`${FIREBASE}/jobs/${key}.json`);
     if(!res.ok)throw new Error(`HTTP ${res.status}`);
     const data=await res.json();
