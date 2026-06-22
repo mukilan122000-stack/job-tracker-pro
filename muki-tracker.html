@@ -3819,7 +3819,10 @@ function applyStatusOf(j){
   const at=(j.applyType||'').toLowerCase();
   // Failures win first — a failed/error attempt must never show as "Applied" even if autoApplied flag is set
   if(['manual_review','vision_failed','failed','error'].includes(r)||at==='manual_review'||at==='error')return 'attention';
-  if(r==='easy_apply_submitted'||j.autoApplied===true)return 'applied';
+  // "Applied" = a CONFIRMED submit only. We intentionally do NOT trust j.autoApplied alone:
+  // legacy/cleared jobs can carry an orphaned autoApplied=true with no submit (the "phantom applied" bug).
+  // Confirmed submits always write autoApplyResult='easy_apply_submitted' (localAgent persistOutcome + attnMarkApplied).
+  if(r==='easy_apply_submitted')return 'applied';
   if(at==='assisted'||r==='skipped_no_easy_apply')return 'manual';
   if((j.source||'').toLowerCase().includes('naukri'))return 'manual'; // Naukri has no auto-apply agent yet
   if(j.easyApply===true)return 'queued';
