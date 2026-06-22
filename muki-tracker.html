@@ -2932,6 +2932,25 @@ function applyProfile(){
   if(crsRow)crsRow.style.display='block';
   updateCRS();
   renderLiveJobsGuide();
+  syncNameToPrefs();
+}
+
+// The candidate's name is collected at onboarding and lives in PROFILE (/userProfiles), but the
+// LinkedIn + Naukri apply agents read /userPreferences — which had NO name. LinkedIn prefills the
+// name from its own account so the gap was invisible there; Naukri ASKS for it, so the agent had
+// nothing and the LLM hallucinated. Mirror PROFILE.name into /userPreferences/{key}/name so the
+// agents read it from the profile (never hardcoded). Runs on every load → backfills existing
+// customers too. Idempotent: only PUTs when the name actually changes this session.
+let _syncedName=null;
+async function syncNameToPrefs(){
+  const key=localStorage.getItem('muki-license-key');
+  const nm=((PROFILE&&PROFILE.name)||'').trim();
+  if(!key||!nm||nm===_syncedName)return;
+  _syncedName=nm;
+  try{
+    await fetch(`${FIREBASE}/userPreferences/${encodeURIComponent(key)}/name.json`,
+      {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(nm)});
+  }catch(e){_syncedName=null;}
 }
 
 async function runResumeHealthCheck(text){
