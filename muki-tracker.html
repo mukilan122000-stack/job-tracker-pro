@@ -2063,6 +2063,22 @@ tr:hover td{background:rgba(99,102,241,.03);}
   <div class="br"><div class="pm"><span id="progLbl">–</span><span id="progPct">–</span></div><div class="pt"><div class="pf" id="progFill" style="width:0%"></div></div></div>
 </div>
 <div class="overdue-bar" id="overdueBar"><h4>⚠️ Overdue — complete these first</h4><div id="overdueList"></div></div>
+<!-- Session-expired alert (written by the local agent when LinkedIn login lapses; auto-clears on next good run) -->
+<div id="applyAlertBar" style="display:none;background:linear-gradient(135deg,rgba(245,158,11,.1),rgba(239,68,68,.06));border:1px solid rgba(245,158,11,.3);border-left:3px solid var(--warn);border-radius:var(--radius-sm);padding:13px 18px;margin-bottom:16px;box-shadow:0 4px 16px rgba(245,158,11,.06);">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+    <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+      <span style="font-size:18px;flex-shrink:0;">🔐</span>
+      <div style="min-width:0;">
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:12px;color:var(--warn);">Auto-apply paused — LinkedIn sign-in needed</div>
+        <div id="applyAlertMsg" style="font-size:11px;color:var(--muted2);margin-top:2px;line-height:1.5;"></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:7px;flex-shrink:0;">
+      <a href="https://www.linkedin.com/feed/" target="_blank" rel="noopener" style="background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.35);color:var(--warn);border-radius:7px;padding:6px 12px;font-family:'DM Mono',monospace;font-size:10px;font-weight:600;text-decoration:none;white-space:nowrap;">↗ Open LinkedIn</a>
+      <button onclick="dismissApplyAlert()" style="background:transparent;border:1px solid var(--border2);color:var(--muted);border-radius:7px;padding:6px 9px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;">✕</button>
+    </div>
+  </div>
+</div>
 <div class="tabs">
   <button class="tb on" onclick="goTab('plan',this)">✅ Plan</button>
   <button class="tb" onclick="goTab('jobs',this)">🔴 Live Jobs</button>
@@ -3652,10 +3668,38 @@ function renderGroqBudget(data){
   el.style.display='block';
 }
 
+// ── Session-expired alert ────────────────────────────────────────────────────
+// The local apply agent writes /config/{licenseKey}/applyAlert when LinkedIn login
+// lapses mid-run (it aborts cleanly so the queue isn't wasted). Surface it here so a
+// quiet auto-run day is never a mystery. The agent removes it at the start of the next
+// good run, so it auto-dismisses once you've logged back in.
+async function fetchApplyAlert(){
+  try{
+    const key=localStorage.getItem('muki-license-key')||'MUKI-2025-TEST';
+    const res=await fetch(`${FIREBASE}/config/${encodeURIComponent(key)}/applyAlert.json`);
+    const a=(res.ok&&await res.json())||null;
+    const bar=document.getElementById('applyAlertBar');if(!bar)return;
+    if(a&&a.type==='linkedin_session_expired'&&localStorage.getItem('muki-dismissed-alert')!==String(a.at)){
+      const when=a.at?new Date(a.at).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'';
+      document.getElementById('applyAlertMsg').textContent=`${a.message||'LinkedIn session expired.'}${when?'  ·  '+when:''}`;
+      bar.dataset.at=a.at||'';
+      bar.style.display='block';
+    }else{
+      bar.style.display='none';
+    }
+  }catch(_){/* silent — non-critical */}
+}
+function dismissApplyAlert(){
+  const bar=document.getElementById('applyAlertBar');if(!bar)return;
+  if(bar.dataset.at)localStorage.setItem('muki-dismissed-alert',bar.dataset.at); // stay dismissed until a NEW alert
+  bar.style.display='none';
+}
+
 async function fetchJobs(){
   try{
     setFBStatus('waiting','⏳ Fetching jobs...');
     fetchGroqBudget();
+    fetchApplyAlert();
     const key=localStorage.getItem('muki-license-key')||'MUKI-2025-TEST';const res=await fetch(`${FIREBASE}/jobs/${key}.json`);
     if(!res.ok)throw new Error(`HTTP ${res.status}`);
     const data=await res.json();
