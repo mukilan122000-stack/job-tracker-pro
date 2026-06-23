@@ -2069,12 +2069,12 @@ tr:hover td{background:rgba(99,102,241,.03);}
     <div style="display:flex;align-items:center;gap:10px;min-width:0;">
       <span style="font-size:18px;flex-shrink:0;">🔐</span>
       <div style="min-width:0;">
-        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:12px;color:var(--warn);">Auto-apply paused — LinkedIn sign-in needed</div>
+        <div id="applyAlertTitle" style="font-family:'Syne',sans-serif;font-weight:800;font-size:12px;color:var(--warn);">Auto-apply paused — sign-in needed</div>
         <div id="applyAlertMsg" style="font-size:11px;color:var(--muted2);margin-top:2px;line-height:1.5;"></div>
       </div>
     </div>
     <div style="display:flex;gap:7px;flex-shrink:0;">
-      <a href="https://www.linkedin.com/feed/" target="_blank" rel="noopener" style="background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.35);color:var(--warn);border-radius:7px;padding:6px 12px;font-family:'DM Mono',monospace;font-size:10px;font-weight:600;text-decoration:none;white-space:nowrap;">↗ Open LinkedIn</a>
+      <a id="applyAlertLink" href="https://www.linkedin.com/feed/" target="_blank" rel="noopener" style="background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.35);color:var(--warn);border-radius:7px;padding:6px 12px;font-family:'DM Mono',monospace;font-size:10px;font-weight:600;text-decoration:none;white-space:nowrap;">↗ Open LinkedIn</a>
       <button onclick="dismissApplyAlert()" style="background:transparent;border:1px solid var(--border2);color:var(--muted);border-radius:7px;padding:6px 9px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;">✕</button>
     </div>
   </div>
@@ -3698,9 +3698,14 @@ async function fetchApplyAlert(){
     const res=await fetch(`${FIREBASE}/config/${encodeURIComponent(key)}/applyAlert.json`);
     const a=(res.ok&&await res.json())||null;
     const bar=document.getElementById('applyAlertBar');if(!bar)return;
-    if(a&&a.type==='linkedin_session_expired'&&localStorage.getItem('muki-dismissed-alert')!==String(a.at)){
+    if(a&&/_session_expired$/.test(a.type||'')&&localStorage.getItem('muki-dismissed-alert')!==String(a.at)){
+      const isNaukri=/naukri/i.test(a.type);
       const when=a.at?new Date(a.at).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'';
-      document.getElementById('applyAlertMsg').textContent=`${a.message||'LinkedIn session expired.'}${when?'  ·  '+when:''}`;
+      document.getElementById('applyAlertTitle').textContent=`Auto-apply paused — ${isNaukri?'Naukri':'LinkedIn'} sign-in needed`;
+      document.getElementById('applyAlertMsg').textContent=`${a.message||(isNaukri?'Naukri':'LinkedIn')+' session expired.'}${when?'  ·  '+when:''}`;
+      const link=document.getElementById('applyAlertLink');
+      link.href=isNaukri?'https://www.naukri.com/':'https://www.linkedin.com/feed/';
+      link.textContent=isNaukri?'↗ Open Naukri':'↗ Open LinkedIn';
       bar.dataset.at=a.at||'';
       bar.style.display='block';
     }else{
