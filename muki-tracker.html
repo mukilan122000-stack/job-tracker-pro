@@ -3567,7 +3567,14 @@ function viewAnswers(i,co){
 }
 function showFU(i){
   const a=S.apps[i];const d=daysSince(a.date);
-  const msg=d>=14?`Hi [Recruiter Name],\n\nI hope you're doing well. I wanted to follow up one last time regarding my application for the ${a.role} position at ${a.co}.\n\nI remain very interested and believe my background in Finance Transformation, Power BI reporting, and ACCA qualifications would be a strong fit.\n\nWould you be able to share an update on the hiring timeline?\n\nBest regards,\nMukilan R\n+91 8838527989 | muki31122000@gmail.com`:`Hi [Recruiter Name],\n\nI hope this finds you well. I recently applied for the ${a.role} role at ${a.co} and wanted to follow up.\n\nI'm particularly excited about this opportunity given my experience in Finance Transformation, FP&A reporting, and Power BI automation from my time at KPMG and Deloitte.\n\nI'd love to learn more about next steps when you have a moment.\n\nBest regards,\nMukilan R\n+91 8838527989 | muki31122000@gmail.com`;
+  // Personalised from the signed-in customer's profile — never hardcoded. Contact lines are
+  // placeholders the user fills before sending (the draft is meant to be edited).
+  const nm=(PROFILE&&PROFILE.name)||'[Your Name]';
+  const sk=(PROFILE&&PROFILE.skills)?PROFILE.skills.split(',').map(s=>s.trim()).filter(Boolean).slice(0,3).join(', '):'my key skills';
+  const sign=`Best regards,\n${nm}\n[Your phone] | [Your email]`;
+  const msg=d>=14
+    ? `Hi [Recruiter Name],\n\nI hope you're doing well. I wanted to follow up one last time regarding my application for the ${a.role} position at ${a.co}.\n\nI remain very interested and believe my background in ${sk} would be a strong fit.\n\nWould you be able to share an update on the hiring timeline?\n\n${sign}`
+    : `Hi [Recruiter Name],\n\nI hope this finds you well. I recently applied for the ${a.role} role at ${a.co} and wanted to follow up.\n\nI'm particularly excited about this opportunity given my experience in ${sk}.\n\nI'd love to learn more about next steps when you have a moment.\n\n${sign}`;
   document.getElementById('fuMsg').textContent=msg;
   document.getElementById('modalFU').classList.add('show');
 }
