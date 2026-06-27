@@ -2186,6 +2186,36 @@ tr:hover td{background:rgba(99,102,241,.03);}
     </div>
   </div>
   <div id="groqBudget" style="display:none;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:13px 16px;margin-bottom:14px;"></div>
+  <div id="searchSettings" style="background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.08);border-radius:12px;margin-bottom:14px;overflow:hidden;">
+    <div onclick="toggleSearchSettings()" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:13px 16px;">
+      <span style="font-family:'Syne',sans-serif;font-weight:700;font-size:12px;color:var(--text);">🎯 Search Settings — roles, locations &amp; match quality</span>
+      <span id="ssCaret" style="color:var(--muted);font-size:12px;">▸</span>
+    </div>
+    <div id="ssBody" style="display:none;padding:0 16px 16px;">
+      <div style="font-size:10px;color:var(--muted);margin-bottom:12px;line-height:1.6;">The daily live scraper searches LinkedIn for these. Edit anytime — the next run uses your latest.</div>
+      <label style="display:block;font-size:10px;color:var(--muted2);margin-bottom:4px;">Job titles / roles (one per line or comma-separated)</label>
+      <textarea id="ssKeywords" rows="3" placeholder="FP&amp;A&#10;Financial Analyst&#10;Finance Transformation Analyst" style="width:100%;box-sizing:border-box;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:var(--text);padding:8px 10px;font-size:12px;font-family:inherit;margin-bottom:12px;resize:vertical;"></textarea>
+      <label style="display:block;font-size:10px;color:var(--muted2);margin-bottom:4px;">Locations (comma-separated)</label>
+      <input id="ssLocations" type="text" placeholder="Hyderabad, Remote" style="width:100%;box-sizing:border-box;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:var(--text);padding:8px 10px;font-size:12px;font-family:inherit;margin-bottom:12px;">
+      <div style="display:flex;gap:12px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:120px;">
+          <label style="display:block;font-size:10px;color:var(--muted2);margin-bottom:4px;">Experience (years)</label>
+          <input id="ssYears" type="number" min="0" max="15" placeholder="3" style="width:100%;box-sizing:border-box;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:var(--text);padding:8px 10px;font-size:12px;font-family:inherit;">
+        </div>
+        <div style="flex:1;min-width:170px;">
+          <label style="display:block;font-size:10px;color:var(--muted2);margin-bottom:4px;">Auto-apply only to matches that are</label>
+          <select id="ssMinFit" style="width:100%;box-sizing:border-box;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:var(--text);padding:8px 10px;font-size:12px;font-family:inherit;">
+            <option value="High">High fit only (safest)</option>
+            <option value="Medium">High + Medium fit</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:14px;">
+        <button onclick="saveSourcePrefs()" class="btn" style="font-size:12px;">Save settings</button>
+        <span id="ssStatus" style="font-size:11px;color:var(--muted);"></span>
+      </div>
+    </div>
+  </div>
   <div class="cpills" id="catPills">
     <button class="cp on" onclick="filterCat('all',this)" id="pill-all">All</button>
     <button class="cp" onclick="filterCat('priority',this)" id="pill-priority">⭐ Priority</button>
@@ -3694,6 +3724,43 @@ function renderGroqBudget(data){
   el.style.display='block';
 }
 
+// ── Search Settings (live-scraper prefs at /sourcePrefs/{key}) ────────────────
+// Lets the customer edit roles/locations/experience + min auto-apply match quality.
+// sourceJobs.js reads keywords/locations/years; localAgent.js reads minFit.
+function toggleSearchSettings(){
+  const b=document.getElementById('ssBody'),c=document.getElementById('ssCaret');if(!b)return;
+  const open=b.style.display!=='none';b.style.display=open?'none':'block';if(c)c.textContent=open?'▸':'▾';
+  if(!open&&!b.dataset.loaded){loadSourcePrefs();b.dataset.loaded='1';}
+}
+async function loadSourcePrefs(){
+  try{
+    const key=localStorage.getItem('muki-license-key')||'MUKI-2025-TEST';
+    const res=await fetch(`${FIREBASE}/sourcePrefs/${encodeURIComponent(key)}.json`);
+    const p=(res.ok&&await res.json())||{};
+    document.getElementById('ssKeywords').value=(p.keywords||['FP&A','Financial Analyst','Finance Transformation Analyst']).join('\n');
+    document.getElementById('ssLocations').value=(p.locations||['Hyderabad','Remote']).join(', ');
+    document.getElementById('ssYears').value=p.years!=null?p.years:3;
+    document.getElementById('ssMinFit').value=p.minFit||'High';
+  }catch(_){/* silent */}
+}
+async function saveSourcePrefs(){
+  const key=localStorage.getItem('muki-license-key')||'MUKI-2025-TEST';
+  const st=document.getElementById('ssStatus');
+  const keywords=document.getElementById('ssKeywords').value.split(/[\n,]+/).map(s=>s.trim()).filter(Boolean);
+  const locations=document.getElementById('ssLocations').value.split(',').map(s=>s.trim()).filter(Boolean);
+  const years=Number(document.getElementById('ssYears').value)||3;
+  const minFit=document.getElementById('ssMinFit').value||'High';
+  if(!keywords.length){st.textContent='Add at least one role.';st.style.color='var(--warn)';return;}
+  if(!locations.length){st.textContent='Add at least one location.';st.style.color='var(--warn)';return;}
+  st.textContent='Saving…';st.style.color='var(--muted)';
+  try{
+    const body={keywords,locations,years,minFit,pastHours:24,updatedAt:new Date().toISOString()};
+    const res=await fetch(`${FIREBASE}/sourcePrefs/${encodeURIComponent(key)}.json`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(!res.ok)throw new Error('save failed');
+    st.textContent='✓ Saved — your next scrape uses these.';st.style.color='var(--accent3)';
+  }catch(e){st.textContent='Save failed — try again.';st.style.color='var(--warn)';}
+}
+
 // ── Session-expired alert ────────────────────────────────────────────────────
 // The local apply agent writes /config/{licenseKey}/applyAlert when LinkedIn login
 // lapses mid-run (it aborts cleanly so the queue isn't wasted). Surface it here so a
@@ -3748,7 +3815,8 @@ async function fetchJobs(){
     allJobs=jobs;
     window._jobByKey=Object.fromEntries(jobs.map(j=>[j.key,j]));
     autoLogApplied(jobs);
-    setFBStatus('connected',`🟢 Live · ${jobs.length} jobs · Last updated ${now}`);
+    const activeCount=jobs.filter(j=>j.rejected!==true).length;
+    setFBStatus('connected',`🟢 Live · ${activeCount} jobs · Last updated ${now}`);
     renderJobsGrid(jobs,activeCat);
   }catch(e){
     setFBStatus('error',`Error: ${e.message}`);
