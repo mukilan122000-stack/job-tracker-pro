@@ -2717,6 +2717,72 @@ window.storage = {
 // ═══════════════════════════════════════════════════════
 const FIREBASE_URL='https://muki-job-tracker-v2-default-rtdb.firebaseio.com';
 
+// ═══════════════════════════════════════════════════════
+// FIREBASE AUTH (scoped per-license) — the dashboard authenticates by
+// {licenseKey, deviceId} via the trusted server, exchanges the returned custom
+// token for an idToken, and auto-appends ?auth= to every Realtime DB REST call.
+// The Web API key is NOT secret (it's meant to live in client apps); security
+// comes from Firebase Auth + the DB security rules.
+// ═══════════════════════════════════════════════════════
+const EC2_BASE='http://35.154.142.252:3000';
+const FB_API_KEY='AIzaSyC335hWm-UN-pNaW7WlL75Iy0vc3rysBsQ';
+window.__FB_ID_TOKEN=null;
+let __FB_REFRESH_TOKEN=null,__FB_REFRESH_TIMER=null;
+
+// Auto-attach the idToken to every Realtime DB REST request. One wrapper covers
+// all existing + future call sites; it ONLY touches the firebaseio host.
+const __origFetch=window.fetch.bind(window);
+window.fetch=function(input,init){
+  try{
+    const url=(typeof input==='string')?input:(input&&input.url);
+    if(url&&url.indexOf('muki-job-tracker-v2-default-rtdb.firebaseio.com')!==-1&&window.__FB_ID_TOKEN){
+      const sep=url.indexOf('?')!==-1?'&':'?';
+      const u=url+sep+'auth='+encodeURIComponent(window.__FB_ID_TOKEN);
+      return (typeof input==='string')?__origFetch(u,init):__origFetch(new Request(u,input),init);
+    }
+  }catch(e){}
+  return __origFetch(input,init);
+};
+
+function __scheduleFbRefresh(sec){
+  if(__FB_REFRESH_TIMER)clearTimeout(__FB_REFRESH_TIMER);
+  __FB_REFRESH_TIMER=setTimeout(__fbRefresh,Math.max(60,(Number(sec)||3600)-300)*1000);
+}
+async function __fbExchange(customToken){
+  const r=await __origFetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${FB_API_KEY}`,
+    {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:customToken,returnSecureToken:true})});
+  if(!r.ok)throw new Error('token exchange failed ('+r.status+')');
+  const d=await r.json();
+  window.__FB_ID_TOKEN=d.idToken;__FB_REFRESH_TOKEN=d.refreshToken;
+  __scheduleFbRefresh(d.expiresIn);
+}
+async function __fbRefresh(){
+  if(!__FB_REFRESH_TOKEN)return;
+  try{
+    const r=await __origFetch(`https://securetoken.googleapis.com/v1/token?key=${FB_API_KEY}`,
+      {method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},
+       body:'grant_type=refresh_token&refresh_token='+encodeURIComponent(__FB_REFRESH_TOKEN)});
+    if(!r.ok)return;
+    const d=await r.json();
+    window.__FB_ID_TOKEN=d.id_token;__FB_REFRESH_TOKEN=d.refresh_token;
+    __scheduleFbRefresh(d.expires_in);
+  }catch(e){}
+}
+// Fetch a scoped token for the active license+device. Best-effort: returns true
+// on success. Called at boot (init) and after onboarding validateKey.
+async function ensureDashboardAuth(){
+  const key=localStorage.getItem('muki-license-key')||'MUKI-2025-TEST';
+  try{
+    const deviceId=getDeviceId();
+    const r=await __origFetch(`${EC2_BASE}/api/auth/dashboard-token`,
+      {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({licenseKey:key,deviceId})});
+    if(!r.ok){console.warn('[auth] dashboard-token',r.status);return false;}
+    const d=await r.json();
+    await __fbExchange(d.token);
+    return true;
+  }catch(e){console.warn('[auth]',e.message);return false;}
+}
+
 let PROFILE=null; // loaded from storage on init
 let RESUME_TEXT=''; // loaded from storage on init
 let RESUME_NAME=''; // filename
@@ -2741,14 +2807,22 @@ async function validateKey(){
   btn.disabled=true;
   document.getElementById('ob-key-icon').innerHTML='<span class="btn-laser" style="font-size:10px;font-family:\'DM Mono\',monospace;">Validating</span>';
   try{
-    const res=await fetch(`${FIREBASE_URL}/licenses/${key}.json`);
-    const data=await res.json();
-    if(!data||data===null){errEl.textContent='Invalid license key. Please check and try again.';errEl.classList.add('show');btn.disabled=false;document.getElementById('ob-key-icon').textContent='Validate Key →';return;}
-    if(data.expiry&&new Date(data.expiry)<new Date()){errEl.textContent='This license key has expired. Please renew to continue.';errEl.classList.add('show');btn.disabled=false;document.getElementById('ob-key-icon').textContent='Validate Key →';return;}
-    if(!data.active){errEl.textContent='License key is not active. Please contact support.';errEl.classList.add('show');btn.disabled=false;document.getElementById('ob-key-icon').textContent='Validate Key →';return;}
+    // Validation + device binding + token mint all happen server-side. Success
+    // means the key is valid/active/unexpired and bound to THIS device.
     const deviceId=getDeviceId();
-    if(data.deviceId&&data.deviceId!==deviceId){errEl.textContent='Key already activated on another device. Contact support to transfer.';errEl.classList.add('show');btn.disabled=false;document.getElementById('ob-key-icon').textContent='Validate Key →';return;}
-    if(!data.deviceId){await fetch(`${FIREBASE_URL}/licenses/${key}.json`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceId,activatedAt:new Date().toISOString()})});}
+    const res=await __origFetch(`${EC2_BASE}/api/auth/dashboard-token`,
+      {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({licenseKey:key,deviceId})});
+    if(!res.ok){
+      const err=await res.json().catch(()=>({}));
+      const e=(err.error||'').toLowerCase();
+      let msg='Invalid license key. Please check and try again.';
+      if(/another device/.test(e))msg='Key already activated on another device. Contact support to transfer.';
+      else if(/expired/.test(e))msg='This license key has expired. Please renew to continue.';
+      else if(/inactive/.test(e))msg='License key is not active. Please contact support.';
+      errEl.textContent=msg;errEl.classList.add('show');btn.disabled=false;document.getElementById('ob-key-icon').textContent='Validate Key →';return;
+    }
+    const data=await res.json();
+    await __fbExchange(data.token);
     localStorage.setItem('muki-license-key',key);
     localStorage.setItem('muki-device-id',deviceId);
     btn.disabled=false;
@@ -5346,6 +5420,7 @@ function goTab(name,btn){
 // INIT
 // ════════════════════════════════════════════════
 async function init(){
+  await ensureDashboardAuth();   // scoped idToken before any Firebase read
   await loadState();
   const onboarded=await checkOnboarding();
   loadKey();
