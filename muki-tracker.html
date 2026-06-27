@@ -3830,7 +3830,7 @@ async function pingServer(){
   btn.disabled=true;icon.classList.add('spin');
   try{
     // Wake up Render server (it sleeps after inactivity)
-    await fetch('http://13.201.32.8:3000/ping',{mode:'no-cors'}).catch(()=>{});
+    await fetch('http://35.154.142.252:3000/ping',{mode:'no-cors'}).catch(()=>{});
   }catch(e){}
   // Wait 2s for server to wake, then fetch fresh jobs
   setTimeout(async()=>{
@@ -4952,7 +4952,7 @@ async function attnMarkApplied(key,jobKey,btn){
   const lk=localStorage.getItem('muki-license-key')||'MUKI-2025-TEST';
   if(btn){btn.disabled=true;btn.textContent='…';}
   try{
-    await fetch('http://13.201.32.8:3000/notifications/mark-read',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({licenseKey:lk,timestamp:key})}).catch(()=>{});
+    await fetch('http://35.154.142.252:3000/notifications/mark-read',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({licenseKey:lk,timestamp:key})}).catch(()=>{});
     if(jobKey){await fetch(`${FIREBASE}/jobs/${lk}/${jobKey}.json`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({autoApplied:true,autoApplyResult:'easy_apply_submitted',manualCompletedAt:new Date().toISOString()})}).catch(()=>{});}
   }catch(e){}
   await checkAttention();
@@ -4961,7 +4961,7 @@ async function attnMarkApplied(key,jobKey,btn){
 async function checkAttention(){
   try{
     const key=localStorage.getItem('muki-license-key')||'MUKI-2025-TEST';
-    const res=await fetch(`http://13.201.32.8:3000/notifications?licenseKey=${encodeURIComponent(key)}`,{signal:AbortSignal.timeout(8000)});
+    const res=await fetch(`http://35.154.142.252:3000/notifications?licenseKey=${encodeURIComponent(key)}`,{signal:AbortSignal.timeout(8000)});
     if(!res.ok)return;
     const data=await res.json();
     const arr=Array.isArray(data)?data:(data.notifications||[]);
@@ -4988,7 +4988,7 @@ async function checkAutoApplyNotifications(){
   try{
     const key=localStorage.getItem('muki-license-key');
     if(!key||key==='MUKI-2025-TEST'&&!localStorage.getItem('show-dev-notif'))return;
-    const res=await fetch(`http://13.201.32.8:3000/notifications?licenseKey=${encodeURIComponent(key)}`,{signal:AbortSignal.timeout(8000)});
+    const res=await fetch(`http://35.154.142.252:3000/notifications?licenseKey=${encodeURIComponent(key)}`,{signal:AbortSignal.timeout(8000)});
     if(!res.ok)return;
     const data=await res.json();
     const unread=(data.notifications||[]).filter(n=>!n.read&&n.type==='auto_apply');
@@ -4999,7 +4999,7 @@ async function checkAutoApplyNotifications(){
     document.getElementById('aaNotifText').textContent=text;
     document.getElementById('aaNotifBanner').style.display='block';
     // Mark as read after showing
-    fetch(`http://13.201.32.8:3000/notifications/mark-read`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({licenseKey:key})}).catch(()=>{});
+    fetch(`http://35.154.142.252:3000/notifications/mark-read`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({licenseKey:key})}).catch(()=>{});
   }catch(e){}
 }
 
@@ -5035,7 +5035,7 @@ async function checkReferralOpportunities(){
   try{
     const key=localStorage.getItem('muki-license-key');
     if(!key)return;
-    const res=await fetch(`http://13.201.32.8:3000/notifications?licenseKey=${encodeURIComponent(key)}`,{signal:AbortSignal.timeout(6000)});
+    const res=await fetch(`http://35.154.142.252:3000/notifications?licenseKey=${encodeURIComponent(key)}`,{signal:AbortSignal.timeout(6000)});
     if(!res.ok)return;
     const data=await res.json();
     const unread=(data.notifications||[]).filter(n=>!n.read&&n.type==='auto_apply');
