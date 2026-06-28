@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AiMooki — Setup Guide</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0a0a0f;color:#e2e8f0;font-family:'Segoe UI',system-ui,sans-serif;padding:32px 24px;max-width:760px;margin:0 auto;line-height:1.6}
+  h1{font-size:26px;font-weight:800;color:#fff;margin-bottom:6px}
+  .tagline{color:#6366f1;font-size:14px;margin-bottom:36px;font-weight:500}
+  h2{font-size:16px;font-weight:700;color:#fff;margin-bottom:14px}
+
+  .step{background:#13131a;border:1px solid #1e293b;border-radius:14px;padding:22px 24px;margin-bottom:16px;position:relative}
+  .step-num{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;background:#6366f1;border-radius:50%;font-size:13px;font-weight:700;color:#fff;margin-right:10px;flex-shrink:0}
+  .step-title{display:flex;align-items:center;font-size:15px;font-weight:700;color:#fff;margin-bottom:10px}
+  .step-body{color:#94a3b8;font-size:13px;padding-left:38px}
+  .step-body p{margin-bottom:8px}
+  .step-body ul{padding-left:16px}
+  .step-body li{margin-bottom:5px}
+
+  .tip{background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.3);border-radius:8px;padding:10px 14px;font-size:12px;color:#a5b4fc;margin-top:10px}
+  .warn{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:8px;padding:10px 14px;font-size:12px;color:#fcd34d;margin-top:10px}
+
+  code{background:#0a0a0f;border:1px solid #1e293b;border-radius:5px;padding:2px 7px;font-family:'Consolas','DM Mono',monospace;font-size:12px;color:#a5b4fc}
+  .code-block{background:#0a0a0f;border:1px solid #1e293b;border-radius:8px;padding:14px 16px;font-family:'Consolas','DM Mono',monospace;font-size:12px;color:#a5b4fc;margin-top:10px;white-space:pre-wrap;word-break:break-all}
+
+  .badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600}
+  .badge.free{background:rgba(34,197,94,.15);color:#22c55e}
+  .badge.required{background:rgba(239,68,68,.15);color:#f87171}
+  .badge.done{background:rgba(99,102,241,.15);color:#a5b4fc}
+
+  .done-box{background:#0f1f0f;border:1px solid #166534;border-radius:14px;padding:22px 24px;margin-bottom:16px}
+  .done-box h2{color:#22c55e}
+
+  .final{background:linear-gradient(135deg,rgba(99,102,241,.15),rgba(139,92,246,.15));border:1px solid rgba(99,102,241,.3);border-radius:14px;padding:24px;text-align:center;margin-top:24px}
+  .final h2{font-size:20px;margin-bottom:8px;color:#fff}
+  .final p{color:#94a3b8;font-size:13px}
+
+  a{color:#6366f1;text-decoration:none}
+  a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid #1e293b;margin:24px 0}
+</style>
+</head>
+<body>
+
+<h1>🤖 AiMooki Setup Guide</h1>
+<div class="tagline">Applies while you sleep — or while you're at work.</div>
+
+<div class="done-box">
+  <h2>✅ What's already done for you</h2>
+  <div style="color:#86efac;font-size:13px;margin-top:10px">
+    <p>✓ Your license key has been activated</p>
+    <p>✓ Your agent secret is pre-filled in the .env file</p>
+    <p>✓ The server running 24/7 in the cloud is set up</p>
+    <p style="margin-top:8px;color:#4ade80;font-weight:600">You only need to complete the 5 steps below — takes about 15 minutes.</p>
+  </div>
+</div>
+
+<!-- STEP 1 -->
+<div class="step">
+  <div class="step-title"><span class="step-num">1</span>Install Node.js <span class="badge free" style="margin-left:8px">free</span></div>
+  <div class="step-body">
+    <p>Node.js is what runs the AiMooki agent on your computer.</p>
+    <p>1. Go to <a href="https://nodejs.org" target="_blank">nodejs.org</a> → click the big <strong>LTS</strong> button to download</p>
+    <p>2. Run the installer → click Next → Next → Install (all defaults are fine)</p>
+    <p>3. When done, open <strong>Command Prompt</strong> (press Win + R, type <code>cmd</code>, press Enter) and type:</p>
+    <div class="code-block">node --version</div>
+    <p style="margin-top:8px">You should see something like <code>v22.x.x</code>. If you do, Node.js is installed ✓</p>
+    <div class="tip">💡 If you already have Node.js installed, skip this step.</div>
+  </div>
+</div>
+
+<!-- STEP 2 -->
+<div class="step">
+  <div class="step-title"><span class="step-num">2</span>Get your free Groq API key <span class="badge free" style="margin-left:8px">free</span></div>
+  <div class="step-body">
+    <p>Groq is the AI that reads job descriptions and fills in your application answers. It's free.</p>
+    <p>1. Go to <a href="https://console.groq.com" target="_blank">console.groq.com</a> → sign up (Google login works)</p>
+    <p>2. After logging in → click <strong>API Keys</strong> in the left sidebar</p>
+    <p>3. Click <strong>Create API Key</strong> → name it "AiMooki" → copy the key (starts with <code>gsk_...</code>)</p>
+    <div class="warn">⚠️ Save this key somewhere — you'll need it in the next step and it won't be shown again.</div>
+  </div>
+</div>
+
+<!-- STEP 3 -->
+<div class="step">
+  <div class="step-title"><span class="step-num">3</span>Set up the AiMooki folder</div>
+  <div class="step-body">
+    <p>1. Unzip the AiMooki folder you received to <code>C:\AiMooki\</code><br>
+    (or anywhere you prefer — just remember where)</p>
+    <p>2. Open the <code>.env</code> file inside the folder with Notepad</p>
+    <p>3. Find the line that says <code>GROQ_API_KEY=</code> and paste your Groq key after the = sign:</p>
+    <div class="code-block">GROQ_API_KEY=gsk_your_key_here</div>
+    <p style="margin-top:8px">4. Save the file (Ctrl + S) and close Notepad</p>
+    <div class="tip">💡 All other lines in .env are already filled in — don't change them.</div>
+  </div>
+</div>
+
+<!-- STEP 4 -->
+<div class="step">
+  <div class="step-title"><span class="step-num">4</span>Run the one-click setup</div>
+  <div class="step-body">
+    <p>1. Open the AiMooki folder</p>
+    <p>2. Right-click <strong>setup.bat</strong> → <strong>Run as administrator</strong></p>
+    <p>3. A black window will appear and run through the setup automatically</p>
+    <p>4. When it says <strong>"Setup complete!"</strong>, press any key to close</p>
+    <p style="margin-top:8px">This does 4 things automatically:</p>
+    <ul>
+      <li>Installs all required packages</li>
+      <li>Creates an "AiMooki Chrome" shortcut on your desktop</li>
+      <li>Sets up 3 scheduled tasks (9 AM scrape, 10:10 AM apply, 4 PM scrape)</li>
+      <li>Creates the folders it needs</li>
+    </ul>
+    <div class="warn">⚠️ If Windows asks "Do you want to allow this app to make changes?" — click <strong>Yes</strong>.</div>
+  </div>
+</div>
+
+<!-- STEP 5 -->
+<div class="step">
+  <div class="step-title"><span class="step-num">5</span>Set up your AiMooki Chrome &amp; LinkedIn</div>
+  <div class="step-body">
+    <p>AiMooki uses a special Chrome window to apply to jobs. You need to log into LinkedIn in it once.</p>
+    <p>1. Double-click <strong>"AiMooki Chrome"</strong> on your desktop (the shortcut setup.bat created)</p>
+    <p>2. A Chrome window opens — go to <a href="https://linkedin.com" target="_blank">linkedin.com</a> and log in with your LinkedIn account</p>
+    <p>3. Stay logged in (tick "Remember me")</p>
+    <p>4. Close this Chrome window — AiMooki will open it automatically every morning</p>
+    <div class="tip">💡 Only use this special Chrome for LinkedIn. Don't use it for regular browsing — it keeps your LinkedIn session alive for the bot.</div>
+  </div>
+</div>
+
+<hr>
+
+<!-- DASHBOARD -->
+<div class="step">
+  <div class="step-title"><span class="step-num">✓</span>Activate your dashboard</div>
+  <div class="step-body">
+    <p>1. Open <strong>muki-tracker.html</strong> in Chrome (the file in the AiMooki folder — or the one shared with you)</p>
+    <p>2. Enter your license key when prompted → click <strong>Validate Key</strong></p>
+    <p>3. You'll see the dashboard — it'll start showing jobs once the first scrape runs</p>
+    <div class="tip">💡 Bookmark this page. Open it anytime to see what AiMooki applied to on your behalf.</div>
+  </div>
+</div>
+
+<hr>
+
+<h2 style="margin-bottom:16px">How it works day to day</h2>
+
+<div style="background:#13131a;border:1px solid #1e293b;border-radius:12px;padding:20px;font-size:13px;color:#94a3b8">
+  <p style="margin-bottom:10px"><strong style="color:#fff">You don't need to do anything daily.</strong> Just keep your laptop on from 9 AM onwards and stay logged into LinkedIn in the AiMooki Chrome window.</p>
+  <p style="margin-bottom:8px">⏰ <strong style="color:#e2e8f0">9:00 AM</strong> — AiMooki searches LinkedIn and Naukri for fresh jobs matching your profile</p>
+  <p style="margin-bottom:8px">⏰ <strong style="color:#e2e8f0">10:10 AM</strong> — AiMooki applies to the best-matching Easy Apply jobs (up to 15/day)</p>
+  <p style="margin-bottom:8px">⏰ <strong style="color:#e2e8f0">4:00 PM</strong> — AiMooki scrapes again for afternoon job postings</p>
+  <p style="margin-top:14px">📋 Check your dashboard once a day to see what was applied to and which jobs need your manual attention.</p>
+</div>
+
+<hr>
+
+<h2 style="margin-bottom:16px">Common questions</h2>
+
+<div style="font-size:13px;color:#94a3b8">
+  <p style="margin-bottom:12px"><strong style="color:#fff">My laptop was off at 9 AM — did I miss today's run?</strong><br>
+  The "Start When Available" option is enabled — if your laptop was off and you turn it on by 10 AM, it'll still run. If you miss a day, no problem — it picks back up tomorrow.</p>
+
+  <p style="margin-bottom:12px"><strong style="color:#fff">How do I check what it applied to?</strong><br>
+  Open muki-tracker.html → go to the <strong>Live Jobs</strong> tab → filter by <strong>Applied</strong>. You'll see every job it applied to with the exact answers it submitted.</p>
+
+  <p style="margin-bottom:12px"><strong style="color:#fff">Can I run it manually right now?</strong><br>
+  Yes — double-click <code>run-aimooki.bat</code> in the AiMooki folder. Make sure the AiMooki Chrome window is open and logged into LinkedIn first.</p>
+
+  <p style="margin-bottom:12px"><strong style="color:#fff">It's not applying to any jobs — why?</strong><br>
+  Two common reasons: (1) LinkedIn session expired — open AiMooki Chrome and log back in. (2) No jobs have been scored yet — wait until 10 AM and check the dashboard for jobs.</p>
+
+  <p><strong style="color:#fff">Something looks wrong — who do I contact?</strong><br>
+  Message the person who set this up for you. Tell them your license key and what you're seeing.</p>
+</div>
+
+<div class="final">
+  <h2>You're all set 🎉</h2>
+  <p>AiMooki will start applying to jobs automatically from tomorrow morning.<br>
+  Check your dashboard tomorrow afternoon to see your first batch of applications.</p>
+</div>
+
+</body>
+</html>
