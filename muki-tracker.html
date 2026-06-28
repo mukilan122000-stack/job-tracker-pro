@@ -2219,10 +2219,8 @@ tr:hover td{background:rgba(99,102,241,.03);}
   <div class="cpills" id="catPills">
     <button class="cp on" onclick="filterCat('all',this)" id="pill-all">All</button>
     <button class="cp" onclick="filterCat('priority',this)" id="pill-priority">⭐ Priority</button>
-    <button class="cp" onclick="filterCat('fpa',this)" id="pill-fpa">📊 FP&A</button>
-    <button class="cp" onclick="filterCat('analytics',this)" id="pill-analytics">📈 Analytics</button>
-    <button class="cp" onclick="filterCat('transformation',this)" id="pill-transformation">⚡ Transform</button>
-    <button class="cp" onclick="filterCat('controls',this)" id="pill-controls">🛡️ Controls</button>
+    <!-- keyword category pills injected dynamically by buildCatPills() -->
+    <span id="kwPills"></span>
     <button class="cp" onclick="filterCat('new',this)" id="pill-new">🆕 Not Applied</button>
     <button class="cp" onclick="filterCat('applied',this)" id="pill-applied">✓ Applied</button>
     <button class="cp" onclick="filterCat('rejected',this)" id="pill-rejected">✕ Rejected</button>
@@ -3729,11 +3727,15 @@ function normalizeJob(j,key){
   const rl=role.toLowerCase();
   let category=j.category||'';
   if(!category){
-    if(rl.includes('fp&a')||rl.includes('fpa')||rl.includes('financial planning')||rl.includes('finance business'))category='fpa';
-    else if(rl.includes('analyt')||rl.includes('mis')||rl.includes('reporting')||rl.includes('data'))category='analytics';
-    else if(rl.includes('transform')||rl.includes('process')||rl.includes('excellence'))category='transformation';
-    else if(rl.includes('control')||rl.includes('audit')||rl.includes('compliance')||rl.includes('risk'))category='controls';
-    else category='fpa';
+    // Dynamic categorisation: match job role against each sourcePrefs keyword.
+    // First keyword whose tokens appear in the role title wins. Falls back to 'other'.
+    const kwList=window._catKeywords||[];
+    let matched=false;
+    for(const kw of kwList){
+      const tokens=kw.toLowerCase().replace(/[^a-z0-9 ]/g,' ').split(' ').filter(t=>t.length>2);
+      if(tokens.some(t=>rl.includes(t))){category=_kwSlug(kw);matched=true;break;}
+    }
+    if(!matched)category='other';
   }
 
   // Matched skills — server may not have this yet
@@ -3811,10 +3813,12 @@ async function loadSourcePrefs(){
     const key=localStorage.getItem('muki-license-key')||'MUKI-2025-TEST';
     const res=await fetch(`${FIREBASE}/sourcePrefs/${encodeURIComponent(key)}.json`);
     const p=(res.ok&&await res.json())||{};
-    document.getElementById('ssKeywords').value=(p.keywords||['FP&A','Financial Analyst','Finance Transformation Analyst']).join('\n');
+    const kws=p.keywords||['FP&A','Financial Analyst','Finance Transformation Analyst'];
+    document.getElementById('ssKeywords').value=kws.join('\n');
     document.getElementById('ssLocations').value=(p.locations||['Hyderabad','Remote']).join(', ');
     document.getElementById('ssYears').value=p.years!=null?p.years:3;
     document.getElementById('ssMinFit').value=p.minFit||'High';
+    buildCatPills(kws); // build category tabs from THIS customer's keywords
   }catch(_){/* silent */}
 }
 async function saveSourcePrefs(){
@@ -3831,6 +3835,7 @@ async function saveSourcePrefs(){
     const body={keywords,locations,years,minFit,pastHours:24,updatedAt:new Date().toISOString()};
     const res=await fetch(`${FIREBASE}/sourcePrefs/${encodeURIComponent(key)}.json`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     if(!res.ok)throw new Error('save failed');
+    buildCatPills(keywords); // update tabs immediately after save
     st.textContent='✓ Saved — your next scrape uses these.';st.style.color='var(--accent3)';
   }catch(e){st.textContent='Save failed — try again.';st.style.color='var(--warn)';}
 }
@@ -3865,6 +3870,45 @@ function dismissApplyAlert(){
   const bar=document.getElementById('applyAlertBar');if(!bar)return;
   if(bar.dataset.at)localStorage.setItem('muki-dismissed-alert',bar.dataset.at); // stay dismissed until a NEW alert
   bar.style.display='none';
+}
+
+// Convert a keyword string to a stable slug used as the category id
+// e.g. "AI Engineer" → "ai-engineer", "FP&A" → "fpa"
+function _kwSlug(kw){
+  return kw.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+}
+
+// Build category pills dynamically from the customer's sourcePrefs keywords.
+// Called after sourcePrefs are loaded. Replaces the hardcoded FP&A/Analytics pills.
+function buildCatPills(keywords){
+  window._catKeywords = keywords || [];
+  window._catLabels   = {};
+  const icons = ['📊','📈','⚡','🛡️','🔧','💡','🎯','🚀','🌐','🔍'];
+  const container = document.getElementById('kwPills');
+  if(!container) return;
+  container.innerHTML = '';
+  (keywords || []).forEach((kw, i) => {
+    const slug  = _kwSlug(kw);
+    const label = kw.length > 18 ? kw.slice(0,16)+'…' : kw;
+    const icon  = icons[i % icons.length];
+    window._catLabels[slug] = `${icon} ${label}`;
+    const btn = document.createElement('button');
+    btn.className  = 'cp';
+    btn.id         = 'pill-' + slug;
+    btn.textContent = `${icon} ${label}`;
+    btn.onclick    = function(){ filterCat(slug, this); };
+    container.appendChild(btn);
+  });
+  // Also add 'other' pill for jobs that don't match any keyword
+  if(keywords && keywords.length){
+    window._catLabels['other'] = '📋 Other';
+    const btn = document.createElement('button');
+    btn.className  = 'cp';
+    btn.id         = 'pill-other';
+    btn.textContent = '📋 Other';
+    btn.onclick    = function(){ filterCat('other', this); };
+    container.appendChild(btn);
+  }
 }
 
 async function fetchJobs(){
@@ -3994,8 +4038,9 @@ function updatePillCounts(jobs){
   Object.entries(counts).forEach(([cat,n])=>{
     const el=document.getElementById('pill-'+cat);
     if(!el)return;
-    const labels={all:'All',priority:'⭐ Priority',fpa:'📊 FP&A',analytics:'📈 Analytics',transformation:'⚡ Transform',controls:'🛡️ Controls',new:'🆕 Not Applied',applied:'✓ Applied',rejected:'✕ Rejected'};
-    el.textContent=n>0?`${labels[cat]} (${n})`:labels[cat];
+    const labels={all:'All',priority:'⭐ Priority',new:'🆕 Not Applied',applied:'✓ Applied',rejected:'✕ Rejected',...(window._catLabels||{})};
+    const txt=labels[cat]||cat;
+    el.textContent=n>0?`${txt} (${n})`:txt;
   });
 }
 
