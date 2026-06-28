@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AiMooki — Owner Dashboard</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0a0a0f;color:#e2e8f0;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;padding:24px}
+  h1{font-size:20px;font-weight:700;margin-bottom:4px;color:#fff}
+  .sub{font-size:12px;color:#64748b;margin-bottom:24px}
+  .login{max-width:380px;margin:80px auto;background:#13131a;border:1px solid #1e293b;border-radius:14px;padding:32px}
+  .login h2{font-size:16px;margin-bottom:20px;color:#fff}
+  input{width:100%;background:#0a0a0f;border:1px solid #1e293b;border-radius:8px;padding:10px 14px;color:#e2e8f0;font-size:14px;outline:none;margin-bottom:12px}
+  input:focus{border-color:#6366f1}
+  button{width:100%;background:#6366f1;border:none;border-radius:8px;padding:11px;color:#fff;font-size:14px;font-weight:600;cursor:pointer}
+  button:hover{background:#4f46e5}
+  .err{color:#f87171;font-size:12px;margin-top:8px}
+
+  .header-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+  .refresh-btn{background:#1e293b;border:1px solid #334155;border-radius:8px;padding:7px 16px;color:#94a3b8;font-size:12px;cursor:pointer}
+  .refresh-btn:hover{background:#334155;color:#fff}
+  .checked{font-size:11px;color:#475569;margin-top:4px}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+  .card{background:#13131a;border:1px solid #1e293b;border-radius:12px;padding:18px;position:relative;overflow:hidden}
+  .card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+  .card.green::before{background:#22c55e}
+  .card.amber::before{background:#f59e0b}
+  .card.red::before{background:#ef4444}
+
+  .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .key{font-size:13px;font-weight:700;color:#fff;font-family:'DM Mono',monospace}
+  .badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;text-transform:uppercase}
+  .badge.green{background:rgba(34,197,94,.15);color:#22c55e}
+  .badge.amber{background:rgba(245,158,11,.15);color:#f59e0b}
+  .badge.red{background:rgba(239,68,68,.15);color:#ef4444}
+
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+  .stat{background:#0a0a0f;border-radius:8px;padding:10px 12px}
+  .stat-val{font-size:20px;font-weight:700;color:#fff;line-height:1}
+  .stat-label{font-size:10px;color:#475569;margin-top:3px}
+  .stat-val.warn{color:#f59e0b}
+  .stat-val.danger{color:#ef4444}
+
+  .issues{margin-top:10px}
+  .issue{font-size:11px;padding:5px 9px;border-radius:6px;margin-bottom:4px;display:flex;align-items:center;gap:6px}
+  .issue.red{background:rgba(239,68,68,.1);color:#fca5a5}
+  .issue.amber{background:rgba(245,158,11,.1);color:#fcd34d}
+  .issue::before{content:'●';font-size:8px}
+
+  .meta{font-size:10px;color:#475569;margin-top:10px;display:flex;gap:12px;flex-wrap:wrap}
+  .meta span{display:flex;align-items:center;gap:4px}
+
+  .summary-bar{display:flex;gap:16px;background:#13131a;border:1px solid #1e293b;border-radius:10px;padding:14px 20px;margin-bottom:20px}
+  .sum-item{text-align:center}
+  .sum-val{font-size:22px;font-weight:700;color:#fff}
+  .sum-val.r{color:#ef4444}
+  .sum-val.a{color:#f59e0b}
+  .sum-val.g{color:#22c55e}
+  .sum-lbl{font-size:10px;color:#475569;margin-top:2px}
+
+  .loading{text-align:center;padding:60px;color:#475569;font-size:14px}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginView" class="login">
+  <h2>🔐 AiMooki Owner</h2>
+  <input type="password" id="secretInput" placeholder="Admin secret" onkeydown="if(event.key==='Enter')doLogin()">
+  <button onclick="doLogin()">Sign in</button>
+  <div id="loginErr" class="err"></div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashView" style="display:none">
+  <div class="header-row">
+    <div>
+      <h1>AiMooki — Owner Dashboard</h1>
+      <div class="sub">All customers · real-time health</div>
+    </div>
+    <button class="refresh-btn" onclick="load()">↻ Refresh</button>
+  </div>
+
+  <div id="summaryBar" class="summary-bar" style="display:none">
+    <div class="sum-item"><div id="sumRed" class="sum-val r">-</div><div class="sum-lbl">🔴 Needs attention</div></div>
+    <div class="sum-item"><div id="sumAmber" class="sum-val a">-</div><div class="sum-lbl">🟡 Watch</div></div>
+    <div class="sum-item"><div id="sumGreen" class="sum-val g">-</div><div class="sum-lbl">🟢 Healthy</div></div>
+    <div class="sum-item"><div id="sumApplied" class="sum-val">-</div><div class="sum-lbl">Applied today (total)</div></div>
+    <div class="sum-item"><div id="sumJobs" class="sum-val">-</div><div class="sum-lbl">Jobs found today (total)</div></div>
+  </div>
+
+  <div id="checkedAt" class="checked"></div>
+  <div id="content" class="loading">Loading health data…</div>
+</div>
+
+<script>
+const EC2 = 'http://35.154.142.252:3000';
+let adminSecret = '';
+
+function doLogin() {
+  const s = document.getElementById('secretInput').value.trim();
+  if (!s) return;
+  adminSecret = s;
+  document.getElementById('loginView').style.display = 'none';
+  document.getElementById('dashView').style.display = 'block';
+  load();
+}
+
+async function load() {
+  document.getElementById('content').innerHTML = '<div class="loading">Fetching health data…</div>';
+  document.getElementById('summaryBar').style.display = 'none';
+  try {
+    const r = await fetch(`${EC2}/api/health?adminSecret=${encodeURIComponent(adminSecret)}`);
+    if (r.status === 403) {
+      document.getElementById('content').innerHTML = '<div class="loading" style="color:#f87171">Wrong admin secret.</div>';
+      return;
+    }
+    const data = await r.json();
+    render(data);
+  } catch(e) {
+    document.getElementById('content').innerHTML = `<div class="loading" style="color:#f87171">Error: ${e.message}</div>`;
+  }
+}
+
+function fmt(h) {
+  if (!Number.isFinite(h) || h >= 999) return 'never';
+  if (h < 1)  return '<1h ago';
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h/24)}d ago`;
+}
+
+function render(data) {
+  const lics = data.licenses || [];
+
+  // Summary bar
+  const red   = lics.filter(l=>l.status==='red').length;
+  const amber = lics.filter(l=>l.status==='amber').length;
+  const green = lics.filter(l=>l.status==='green').length;
+  const totalApplied = lics.reduce((s,l)=>s+(l.appliedToday||0),0);
+  const totalJobs    = lics.reduce((s,l)=>s+(l.jobsToday||0),0);
+  document.getElementById('sumRed').textContent    = red;
+  document.getElementById('sumAmber').textContent  = amber;
+  document.getElementById('sumGreen').textContent  = green;
+  document.getElementById('sumApplied').textContent = totalApplied;
+  document.getElementById('sumJobs').textContent    = totalJobs;
+  document.getElementById('summaryBar').style.display = 'flex';
+  document.getElementById('checkedAt').textContent = `Last checked: ${new Date(data.checkedAt).toLocaleTimeString()}`;
+
+  if (!lics.length) {
+    document.getElementById('content').innerHTML = '<div class="loading">No licenses found.</div>';
+    return;
+  }
+
+  const html = lics.map(l => {
+    const applyColor  = l.lastApplyHoursAgo > 48 ? 'danger' : l.lastApplyHoursAgo > 24 ? 'warn' : '';
+    const jobColor    = l.lastJobHoursAgo   > 24 ? 'danger' : l.lastJobHoursAgo   > 18 ? 'warn' : '';
+    const groqColor   = l.groqPct >= 90 ? 'danger' : l.groqPct >= 70 ? 'warn' : '';
+    const issues = [
+      ...(l.red   || []).map(m=>`<div class="issue red">${m}</div>`),
+      ...(l.amber || []).map(m=>`<div class="issue amber">${m}</div>`),
+    ].join('');
+    const expiry = l.expiry ? `· expires ${l.expiry}` : '';
+    return `
+    <div class="card ${l.status}">
+      <div class="card-header">
+        <div class="key">${l.key}</div>
+        <div class="badge ${l.status}">${l.status}</div>
+      </div>
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-val ${applyColor}">${l.appliedToday ?? '-'}</div>
+          <div class="stat-label">Applied today</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val ${jobColor}">${l.jobsToday ?? '-'}</div>
+          <div class="stat-label">Jobs found today</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val ${applyColor}">${fmt(l.lastApplyHoursAgo)}</div>
+          <div class="stat-label">Last apply</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val ${groqColor}">${l.groqPct ?? '-'}%</div>
+          <div class="stat-label">Groq used today</div>
+        </div>
+      </div>
+      ${issues ? `<div class="issues">${issues}</div>` : ''}
+      <div class="meta">
+        <span>📋 ${l.unscored ?? '-'} unscored</span>
+        <span>📥 last job ${fmt(l.lastJobHoursAgo)}</span>
+        <span>${l.active ? '✅ active' : '❌ inactive'}${expiry}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('content').innerHTML = `<div class="grid">${html}</div>`;
+}
+
+// Auto-refresh every 5 min
+setInterval(load, 5 * 60 * 1000);
+</script>
+</body>
+</html>
