@@ -3024,6 +3024,8 @@ Tactics: LinkedIn, Naukri, GCC companies, referrals, India market specific`;
 
 // ── Apply profile to dashboard ─────────────────────────
 function applyProfile(){
+  // Rebuild 30-day tasks from this customer's actual role + skills (not hardcoded finance)
+  if(PROFILE&&(PROFILE.role||PROFILE.skills)) TASKS=buildTasks(PROFILE);
   if(!PROFILE)return;
   const name=PROFILE.name||'';
   const skills=(PROFILE.skills||'').split(',').map(s=>s.trim()).filter(Boolean).slice(0,5).join(' · ');
@@ -3337,58 +3339,72 @@ async function restoreAndLaunch(key){
 
 
 // ═══════════════════════════════════════════════════════
-// TASK DATA (default — overridden by AI tasks from onboarding)
+// TASK DATA — generated dynamically from customer profile
+// so every customer gets tasks relevant to THEIR field,
+// not hardcoded finance tasks for Mukilan.
 // ═══════════════════════════════════════════════════════
-const TASKS={
-  w1:[
-    {id:'a1',p:'h',title:'Rewrite resume with transformation framing — owned/led/drove',meta:'Days 1–2',day:1},
-    {id:'a2',p:'h',title:'Add ATS keywords: R2R, SAP FI, IFRS, Power BI, VBA, FP&A',meta:'Days 1–2',day:1},
-    {id:'a3',p:'h',title:'Add 3+ quantified bullets — ₹ amounts, % time saved, hours automated',meta:'Day 2',day:2},
-    {id:'a4',p:'h',title:'Update LinkedIn headline: Finance Transformation | FP&A | Reporting & Analytics | ACCA',meta:'Day 2',day:2},
-    {id:'a5',p:'h',title:'Turn on Open to Work — visible to recruiters only',meta:'Day 2',day:2},
-    {id:'a6',p:'h',title:'Set up 15 LinkedIn job alerts using full role title list',meta:'Day 3',day:3},
-    {id:'a7',p:'m',title:'Set up 10 Naukri alerts with same titles + Power BI / VBA / SAP filters',meta:'Day 3',day:3},
-    {id:'a8',p:'h',title:'Apply to first 10 roles — FP&A, R2R, Reporting Analytics titles',meta:'Days 4–5',day:4},
-    {id:'a9',p:'m',title:'Connect with 20 KPMG/Deloitte alumni in GCC or MNC finance roles',meta:'Days 5–7',day:5},
-    {id:'a10',p:'m',title:'Send 5 personalised recruiter InMails',meta:'Days 6–7',day:6},
-    {id:'a11',p:'h',title:'Check KPMG India internal job board for transfer opportunities',meta:'Day 6',day:6},
-    {id:'a12',p:'m',title:'Apply directly on company portals — not just aggregators',meta:'Day 7',day:7},
-  ],
-  w2:[
-    {id:'b1',p:'h',title:'Hit 25 total applications by Day 14',meta:'Week 2 milestone',day:8},
-    {id:'b2',p:'h',title:'Send 10 more recruiter InMails — track reply rate',meta:'Days 8–10',day:8},
-    {id:'b3',p:'m',title:'Post 1 LinkedIn article: Finance Transformation insight',meta:'Day 9',day:9},
-    {id:'b4',p:'h',title:'Prepare STAR answers for top 10 interview questions',meta:'Days 10–12',day:10},
-    {id:'b5',p:'m',title:'Research 5 companies: GCC size, finance team, tools used',meta:'Days 11–14',day:11},
-    {id:'b6',p:'h',title:'Follow up on Week 1 applications — 7-day nudge',meta:'Days 12–13',day:12},
-    {id:'b7',p:'h',title:'Paste 3 JDs into Analyser tab — get tailored bullets',meta:'Week 2',day:13},
-    {id:'b8',p:'m',title:'Check AmbitionBox + Glassdoor salary bands for each role',meta:'Day 14',day:14},
-    {id:'b9',p:'l',title:'Begin ACCA next paper — 30 min/day minimum',meta:'Day 14+',day:14},
-    {id:'b10',p:'m',title:'Connect with 15 more finance professionals in GCCs',meta:'Week 2',day:10},
-  ],
-  w3:[
-    {id:'c1',p:'h',title:'Hit 40 total applications by Day 21',meta:'Week 3 milestone',day:15},
-    {id:'c2',p:'h',title:'Mock interview with STAR — record yourself, watch it back',meta:'Days 15–16',day:15},
-    {id:'c3',p:'m',title:'Schedule 2 coffee chats with people in target roles',meta:'Days 16–18',day:16},
-    {id:'c4',p:'h',title:'Second follow-up wave on Week 1–2 applications',meta:'Days 17–18',day:17},
-    {id:'c5',p:'m',title:'Prepare 3 sharp questions to ask every interviewer',meta:'Day 20',day:20},
-    {id:'c6',p:'h',title:'If no interviews: audit resume, test different role titles',meta:'Day 21',day:21},
-    {id:'c7',p:'h',title:'Explore referral routes — use Network tab to find contacts',meta:'Week 3',day:15},
-    {id:'c8',p:'l',title:'Research KPMG Germany / Deloitte Germany for international track',meta:'Day 21',day:21},
-    {id:'c9',p:'m',title:'Post second LinkedIn piece',meta:'Day 19',day:19},
-    {id:'c10',p:'m',title:'Review: is JD matching improving? Getting callbacks?',meta:'Day 21',day:21},
-  ],
-  w4:[
-    {id:'d1',p:'h',title:'Final push — apply to any targets not yet approached',meta:'Days 22–25',day:22},
-    {id:'d2',p:'h',title:'Third follow-up on oldest unanswered applications',meta:'Day 23',day:23},
-    {id:'d3',p:'h',title:'Prepare negotiation script — never accept first number',meta:'Day 24',day:24},
-    {id:'d4',p:'h',title:'Validate any offer against AmbitionBox / LinkedIn salary data',meta:'Days 25–30',day:25},
-    {id:'d5',p:'h',title:'Evaluate offers: CTC, growth, AI-resilience, international mobility',meta:'Days 28–30',day:28},
-    {id:'d6',p:'m',title:'If no offer: keep pipeline going, review learnings',meta:'Day 30',day:30},
-    {id:'d7',p:'m',title:'Plan Month 2 — new targets, updated resume, next ACCA paper',meta:'Day 30',day:30},
-    {id:'d8',p:'l',title:'Celebrate all wins — interviews, connects, callbacks all count',meta:'Day 30',day:30},
-  ]
-};
+function buildTasks(profile){
+  const role    = (profile&&profile.role)    || 'your target role';
+  const skills  = (profile&&profile.skills)  || 'your key skills';
+  const roles   = role.split(',').map(s=>s.trim()).filter(Boolean);
+  const r1      = roles[0] || role;
+  const r2      = roles[1] || roles[0] || role;
+  const skillList = skills.split(',').map(s=>s.trim()).filter(Boolean);
+  const s1      = skillList.slice(0,3).join(', ') || skills;
+  const s2      = skillList.slice(3,6).join(', ') || s1;
+  return {
+    w1:[
+      {id:'a1',p:'h',title:`Rewrite resume with impact framing — owned/led/built`,meta:'Days 1–2',day:1},
+      {id:'a2',p:'h',title:`Add ATS keywords: ${s1}`,meta:'Days 1–2',day:1},
+      {id:'a3',p:'h',title:`Add 3+ quantified bullets — % improvements, scale, outcomes`,meta:'Day 2',day:2},
+      {id:'a4',p:'h',title:`Update LinkedIn headline: ${r1} | ${r2}`,meta:'Day 2',day:2},
+      {id:'a5',p:'h',title:`Turn on Open to Work — visible to recruiters only`,meta:'Day 2',day:2},
+      {id:'a6',p:'h',title:`Set up 15 LinkedIn job alerts using your full role title list`,meta:'Day 3',day:3},
+      {id:'a7',p:'m',title:`Set up 10 Naukri alerts with same titles + ${s2} filters`,meta:'Day 3',day:3},
+      {id:'a8',p:'h',title:`Apply to first 10 roles — ${roles.slice(0,2).join(', ')} titles`,meta:'Days 4–5',day:4},
+      {id:'a9',p:'m',title:`Connect with 20 professionals in your target roles on LinkedIn`,meta:'Days 5–7',day:5},
+      {id:'a10',p:'m',title:`Send 5 personalised recruiter InMails`,meta:'Days 6–7',day:6},
+      {id:'a11',p:'h',title:`Check company career portals directly for ${r1} openings`,meta:'Day 6',day:6},
+      {id:'a12',p:'m',title:`Apply directly on company portals — not just aggregators`,meta:'Day 7',day:7},
+    ],
+    w2:[
+      {id:'b1',p:'h',title:`Hit 25 total applications by Day 14`,meta:'Week 2 milestone',day:8},
+      {id:'b2',p:'h',title:`Send 10 more recruiter InMails — track reply rate`,meta:'Days 8–10',day:8},
+      {id:'b3',p:'m',title:`Post 1 LinkedIn article sharing insight from your ${r1} experience`,meta:'Day 9',day:9},
+      {id:'b4',p:'h',title:`Prepare STAR answers for top 10 interview questions in ${r1}`,meta:'Days 10–12',day:10},
+      {id:'b5',p:'m',title:`Research 5 target companies — team size, tech stack, growth`,meta:'Days 11–14',day:11},
+      {id:'b6',p:'h',title:`Follow up on Week 1 applications — 7-day nudge`,meta:'Days 12–13',day:12},
+      {id:'b7',p:'h',title:`Paste 3 JDs into Analyser tab — get tailored resume bullets`,meta:'Week 2',day:13},
+      {id:'b8',p:'m',title:`Check AmbitionBox + LinkedIn salary bands for ${r1}`,meta:'Day 14',day:14},
+      {id:'b9',p:'l',title:`Upskill: 30 min/day on a skill gap identified from JDs`,meta:'Day 14+',day:14},
+      {id:'b10',p:'m',title:`Connect with 15 more professionals in your target companies`,meta:'Week 2',day:10},
+    ],
+    w3:[
+      {id:'c1',p:'h',title:`Hit 40 total applications by Day 21`,meta:'Week 3 milestone',day:15},
+      {id:'c2',p:'h',title:`Mock interview with STAR — record yourself, watch it back`,meta:'Days 15–16',day:15},
+      {id:'c3',p:'m',title:`Schedule 2 coffee chats with people in ${r1} roles`,meta:'Days 16–18',day:16},
+      {id:'c4',p:'h',title:`Second follow-up wave on Week 1–2 applications`,meta:'Days 17–18',day:17},
+      {id:'c5',p:'m',title:`Prepare 3 sharp questions to ask every interviewer`,meta:'Day 20',day:20},
+      {id:'c6',p:'h',title:`If no interviews: audit resume, test different ${r2} titles`,meta:'Day 21',day:21},
+      {id:'c7',p:'h',title:`Explore referral routes — use Network tab to find contacts`,meta:'Week 3',day:15},
+      {id:'c8',p:'l',title:`Research international ${r1} opportunities if open to relocation`,meta:'Day 21',day:21},
+      {id:'c9',p:'m',title:`Post second LinkedIn piece — project or learning`,meta:'Day 19',day:19},
+      {id:'c10',p:'m',title:`Review: is JD matching improving? Getting callbacks?`,meta:'Day 21',day:21},
+    ],
+    w4:[
+      {id:'d1',p:'h',title:`Final push — apply to any targets not yet approached`,meta:'Days 22–25',day:22},
+      {id:'d2',p:'h',title:`Third follow-up on oldest unanswered applications`,meta:'Day 23',day:23},
+      {id:'d3',p:'h',title:`Prepare negotiation script — never accept first number`,meta:'Day 24',day:24},
+      {id:'d4',p:'h',title:`Validate any offer against AmbitionBox / LinkedIn salary data`,meta:'Days 25–30',day:25},
+      {id:'d5',p:'h',title:`Evaluate offers: CTC, growth, learning, team quality`,meta:'Days 28–30',day:28},
+      {id:'d6',p:'m',title:`If no offer: keep pipeline going, review learnings`,meta:'Day 30',day:30},
+      {id:'d7',p:'m',title:`Plan Month 2 — new targets, updated resume, skill gap work`,meta:'Day 30',day:30},
+      {id:'d8',p:'l',title:`Celebrate all wins — interviews, connects, callbacks all count`,meta:'Day 30',day:30},
+    ]
+  };
+}
+// Default tasks built from empty profile — replaced when profile loads
+let TASKS = buildTasks(null);
 
 const FIREBASE='https://muki-job-tracker-v2-default-rtdb.firebaseio.com';
 
