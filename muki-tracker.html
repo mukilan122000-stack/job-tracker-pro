@@ -3286,11 +3286,15 @@ async function checkOnboarding(){
     return true;
   }
 
-  // Check if license key exists but profile missing (new device scenario)
+  // Check if license key exists but profile missing (new device / cleared storage scenario)
+  // Auto-fill and auto-submit so returning users never see the login screen again.
   const existingKey=localStorage.getItem('muki-license-key');
-  if(existingKey&&existingKey!=='MUKI-2025-TEST'){
-    // Show restore banner on onboarding
-    showFirebaseRestoreBanner(existingKey);
+  if(existingKey){
+    const inp=document.getElementById('ob-key');
+    if(inp){inp.value=existingKey;}
+    // Auto-validate silently — if it succeeds the onboarding hides itself
+    setTimeout(()=>validateKey(),300);
+    return false;
   }
 
   // Show onboarding
