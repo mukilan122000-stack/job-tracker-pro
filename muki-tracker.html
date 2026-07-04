@@ -2219,6 +2219,7 @@ tr:hover td{background:rgba(99,102,241,.03);}
   <div class="cpills" id="catPills">
     <button class="cp on" onclick="filterCat('all',this)" id="pill-all">All</button>
     <button class="cp" onclick="filterCat('priority',this)" id="pill-priority">⭐ Priority</button>
+    <button class="cp" onclick="filterCat('international',this)" id="pill-international">🌍 International</button>
     <!-- keyword category pills injected dynamically by buildCatPills() -->
     <span id="kwPills"></span>
     <button class="cp" onclick="filterCat('new',this)" id="pill-new">🆕 Not Applied</button>
@@ -3894,20 +3895,53 @@ async function saveSourcePrefs(){
 // lapses mid-run (it aborts cleanly so the queue isn't wasted). Surface it here so a
 // quiet auto-run day is never a mystery. The agent removes it at the start of the next
 // good run, so it auto-dismisses once you've logged back in.
+// Alert types fall into two buckets:
+//  - customer-fixable: session expiry (re-login), missing Gemini key (add one)
+//    → shown with an action link and the existing amber "needs you" styling.
+//  - internal/informational: shared quota exhaustion — not the customer's fault
+//    and nothing for them to do, so no link and a calmer tone/color, distinct
+//    from "something needs fixing".
+const ALERT_KINDS = {
+  linkedin_session_expired: { title:'Auto-apply paused — LinkedIn sign-in needed', linkHref:'https://www.linkedin.com/feed/', linkText:'↗ Open LinkedIn', kind:'action' },
+  naukri_session_expired:   { title:'Auto-apply paused — Naukri sign-in needed',   linkHref:'https://www.naukri.com/',       linkText:'↗ Open Naukri',   kind:'action' },
+  gemini_key_missing:       { title:'Add your Gemini key for personalised scoring', kind:'action', tabIndex:5, linkText:'🎯 Go to Analyser' },
+  scoring_budget_exhausted: { title:"Scoring paused — AiMooki's shared budget is full for today", kind:'info' },
+};
+function _openAnalyserFromAlert(){
+  const btn=document.querySelectorAll('.tb')[5]; if(btn) goTab('analyser',btn);
+}
 async function fetchApplyAlert(){
   try{
     const key=localStorage.getItem('muki-license-key')||'MUKI-2025-TEST';
     const res=await fetch(`${FIREBASE}/config/${encodeURIComponent(key)}/applyAlert.json`);
     const a=(res.ok&&await res.json())||null;
     const bar=document.getElementById('applyAlertBar');if(!bar)return;
-    if(a&&/_session_expired$/.test(a.type||'')&&localStorage.getItem('muki-dismissed-alert')!==String(a.at)){
-      const isNaukri=/naukri/i.test(a.type);
+    const cfg=a&&ALERT_KINDS[a.type];
+    if(cfg&&localStorage.getItem('muki-dismissed-alert')!==String(a.at)){
       const when=a.at?new Date(a.at).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'';
-      document.getElementById('applyAlertTitle').textContent=`Auto-apply paused — ${isNaukri?'Naukri':'LinkedIn'} sign-in needed`;
-      document.getElementById('applyAlertMsg').textContent=`${a.message||(isNaukri?'Naukri':'LinkedIn')+' session expired.'}${when?'  ·  '+when:''}`;
+      document.getElementById('applyAlertTitle').textContent=cfg.title;
+      document.getElementById('applyAlertMsg').textContent=`${a.message||''}${when?'  ·  '+when:''}`;
       const link=document.getElementById('applyAlertLink');
-      link.href=isNaukri?'https://www.naukri.com/':'https://www.linkedin.com/feed/';
-      link.textContent=isNaukri?'↗ Open Naukri':'↗ Open LinkedIn';
+      const icon=bar.querySelector('span');
+      if(cfg.kind==='info'){
+        // Calmer framing — nothing the customer needs to click or fix.
+        link.style.display='none';
+        bar.style.background='linear-gradient(135deg,rgba(0,229,255,.08),rgba(0,229,255,.03))';
+        bar.style.borderColor='rgba(0,229,255,.25)';
+        if(icon)icon.textContent='ℹ️';
+      }else{
+        link.style.display='';
+        bar.style.background='linear-gradient(135deg,rgba(245,158,11,.1),rgba(239,68,68,.06))';
+        bar.style.borderColor='rgba(245,158,11,.3)';
+        if(icon)icon.textContent='🔐';
+        if(cfg.tabIndex!==undefined){
+          link.removeAttribute('href'); link.removeAttribute('target');
+          link.onclick=_openAnalyserFromAlert;
+        }else{
+          link.href=cfg.linkHref; link.target='_blank'; link.onclick=null;
+        }
+        link.textContent=cfg.linkText;
+      }
       bar.dataset.at=a.at||'';
       bar.style.display='block';
     }else{
@@ -3997,7 +4031,7 @@ async function pingServer(){
   btn.disabled=true;icon.classList.add('spin');
   try{
     // Wake up Render server (it sleeps after inactivity)
-    await fetch('http://35.154.142.252:3000/ping',{mode:'no-cors'}).catch(()=>{});
+    await fetch(`${EC2_BASE}/ping`,{mode:'no-cors'}).catch(()=>{});
   }catch(e){}
   // Wait 2s for server to wake, then fetch fresh jobs
   setTimeout(async()=>{
@@ -4074,8 +4108,9 @@ function updatePillCounts(jobs){
   const app=j=>applyStatusOf(j)==='applied';
   const vis=jobs.filter(j=>j.rejected!==true); // rejected excluded from all the active pills
   const counts={
-    all:vis.length,
+    all:vis.filter(j=>j.region!=='international').length,
     priority:vis.filter(j=>j.priority).length,
+    international:vis.filter(j=>j.region==='international').length,
     fpa:vis.filter(j=>j.category==='fpa').length,
     analytics:vis.filter(j=>j.category==='analytics').length,
     transformation:vis.filter(j=>j.category==='transformation').length,
@@ -4087,7 +4122,7 @@ function updatePillCounts(jobs){
   Object.entries(counts).forEach(([cat,n])=>{
     const el=document.getElementById('pill-'+cat);
     if(!el)return;
-    const labels={all:'All',priority:'⭐ Priority',new:'🆕 Not Applied',applied:'✓ Applied',rejected:'✕ Rejected',...(window._catLabels||{})};
+    const labels={all:'All',priority:'⭐ Priority',international:'🌍 International',new:'🆕 Not Applied',applied:'✓ Applied',rejected:'✕ Rejected',...(window._catLabels||{})};
     const txt=labels[cat]||cat;
     el.textContent=n>0?`${txt} (${n})`:txt;
   });
@@ -4168,8 +4203,9 @@ function renderJobsGrid(jobs,cat){
     else {
       const active=vis.filter(j=>!isApplied(j)); // applied jobs move to the Applications tab — hidden from the active views
       if(cat==='priority') list=active.filter(j=>j.priority);
-      else if(cat==='all') list=active;
-      else { list=active.filter(j=>j.category===cat); if(!list.length)list=active; }
+      else if(cat==='international') list=active.filter(j=>j.region==='international');
+      else if(cat==='all') list=active.filter(j=>j.region!=='international'); // international jobs live under their own tab
+      else { list=active.filter(j=>j.category===cat&&j.region!=='international'); if(!list.length)list=active.filter(j=>j.region!=='international'); }
     }
   }
   // Deduplicate
@@ -5170,7 +5206,7 @@ async function attnMarkApplied(key,jobKey,btn){
   const lk=localStorage.getItem('muki-license-key')||'MUKI-2025-TEST';
   if(btn){btn.disabled=true;btn.textContent='…';}
   try{
-    await fetch('http://35.154.142.252:3000/notifications/mark-read',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({licenseKey:lk,timestamp:key})}).catch(()=>{});
+    await fetch(`${EC2_BASE}/notifications/mark-read`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(window.__FB_ID_TOKEN||'')},body:JSON.stringify({licenseKey:lk,timestamp:key})}).catch(()=>{});
     if(jobKey){await fetch(`${FIREBASE}/jobs/${lk}/${jobKey}.json`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({autoApplied:true,autoApplyResult:'easy_apply_submitted',manualCompletedAt:new Date().toISOString()})}).catch(()=>{});}
   }catch(e){}
   await checkAttention();
@@ -5179,7 +5215,7 @@ async function attnMarkApplied(key,jobKey,btn){
 async function checkAttention(){
   try{
     const key=localStorage.getItem('muki-license-key')||'MUKI-2025-TEST';
-    const res=await fetch(`http://35.154.142.252:3000/notifications?licenseKey=${encodeURIComponent(key)}`,{signal:AbortSignal.timeout(8000)});
+    const res=await fetch(`${EC2_BASE}/notifications?licenseKey=${encodeURIComponent(key)}`,{signal:AbortSignal.timeout(8000),headers:{'Authorization':'Bearer '+(window.__FB_ID_TOKEN||'')}});
     if(!res.ok)return;
     const data=await res.json();
     const arr=Array.isArray(data)?data:(data.notifications||[]);
@@ -5206,7 +5242,7 @@ async function checkAutoApplyNotifications(){
   try{
     const key=localStorage.getItem('muki-license-key');
     if(!key||key==='MUKI-2025-TEST'&&!localStorage.getItem('show-dev-notif'))return;
-    const res=await fetch(`http://35.154.142.252:3000/notifications?licenseKey=${encodeURIComponent(key)}`,{signal:AbortSignal.timeout(8000)});
+    const res=await fetch(`${EC2_BASE}/notifications?licenseKey=${encodeURIComponent(key)}`,{signal:AbortSignal.timeout(8000),headers:{'Authorization':'Bearer '+(window.__FB_ID_TOKEN||'')}});
     if(!res.ok)return;
     const data=await res.json();
     const unread=(data.notifications||[]).filter(n=>!n.read&&n.type==='auto_apply');
@@ -5217,7 +5253,7 @@ async function checkAutoApplyNotifications(){
     document.getElementById('aaNotifText').textContent=text;
     document.getElementById('aaNotifBanner').style.display='block';
     // Mark as read after showing
-    fetch(`http://35.154.142.252:3000/notifications/mark-read`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({licenseKey:key})}).catch(()=>{});
+    fetch(`${EC2_BASE}/notifications/mark-read`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(window.__FB_ID_TOKEN||'')},body:JSON.stringify({licenseKey:key})}).catch(()=>{});
   }catch(e){}
 }
 
@@ -5253,7 +5289,7 @@ async function checkReferralOpportunities(){
   try{
     const key=localStorage.getItem('muki-license-key');
     if(!key)return;
-    const res=await fetch(`http://35.154.142.252:3000/notifications?licenseKey=${encodeURIComponent(key)}`,{signal:AbortSignal.timeout(6000)});
+    const res=await fetch(`${EC2_BASE}/notifications?licenseKey=${encodeURIComponent(key)}`,{signal:AbortSignal.timeout(6000),headers:{'Authorization':'Bearer '+(window.__FB_ID_TOKEN||'')}});
     if(!res.ok)return;
     const data=await res.json();
     const unread=(data.notifications||[]).filter(n=>!n.read&&n.type==='auto_apply');
