@@ -112,7 +112,7 @@ async function load() {
   document.getElementById('content').innerHTML = '<div class="loading">Fetching health data…</div>';
   document.getElementById('summaryBar').style.display = 'none';
   try {
-    const r = await fetch(`${EC2}/api/health?adminSecret=${encodeURIComponent(adminSecret)}`);
+    const r = await fetch(`${EC2}/api/health`, { headers: { 'X-Admin-Secret': adminSecret } });
     if (r.status === 403) {
       document.getElementById('content').innerHTML = '<div class="loading" style="color:#f87171">Wrong admin secret.</div>';
       return;
