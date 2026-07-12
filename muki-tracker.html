@@ -2597,6 +2597,11 @@ tr:hover td{background:rgba(99,102,241,.03);}
     <div><label class="pref-label">Current CTC (LPA)</label><input class="fi" id="pCurrentCTC" type="number" placeholder="e.g. 8.5" step="0.5"></div>
     <div><label class="pref-label">Expected CTC (LPA)</label><input class="fi" id="pExpectedCTC" type="number" placeholder="e.g. 12" step="0.5"></div>
   </div>
+  <div style="margin-bottom:10px;">
+    <label class="pref-label">Current Location (what AiMooki tells recruiters)</label>
+    <input class="fi" id="pCurrentCity" placeholder="e.g. Hyderabad">
+    <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;line-height:1.5;">If a recruiter asks "where do you currently reside?", this is the city AiMooki answers with — useful if you're open to relocating anywhere and don't want it guessing.</div>
+  </div>
   <div class="frow">
     <div><label class="pref-label">Work Mode</label>
       <select class="fi" id="pWorkMode">
@@ -3118,6 +3123,7 @@ function applyProfile(){
   updateCRS();
   renderLiveJobsGuide();
   syncNameToPrefs();
+  syncPrefsToUserPreferences();
 }
 
 // The candidate's name is collected at onboarding and lives in PROFILE (/userProfiles), but the
@@ -3136,6 +3142,36 @@ async function syncNameToPrefs(){
     await fetch(`${FIREBASE}/userPreferences/${encodeURIComponent(key)}/name.json`,
       {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(nm)});
   }catch(e){_syncedName=null;}
+}
+
+// Same class of bug as syncNameToPrefs above, much bigger blast radius: the "Job Search
+// Preferences" modal (CTC, notice period, current location, etc.) only ever wrote to
+// /userSync/{key}/prefs via persist()/syncToFirebase — a node the apply agents never read.
+// For real customers (verified: BHARATH, SIS1) this meant /userPreferences/{key}/jobPreferences
+// had NOTHING but a name — every CTC/notice-period/location question was answered from thin air.
+// Mirrors the fields the agents actually consume (sanitizePrefs flattens jobPreferences — see
+// services/visionApply.js) into that node. Runs on every load (backfills existing customers,
+// like syncNameToPrefs) and again right after Save. Idempotent: only PATCHes when something changed.
+let _syncedPrefsJSON=null;
+async function syncPrefsToUserPreferences(){
+  const key=localStorage.getItem('muki-license-key');
+  const p=S.prefs||{};
+  if(!key)return;
+  const jp={};
+  if(p.currentCTC)jp.currentCTC=String(p.currentCTC);
+  if(p.expectedCTC)jp.expectedCTC=String(p.expectedCTC);
+  if(p.currentCity)jp.city=p.currentCity;
+  if(p.notice)jp.noticePeriod=p.notice;
+  if(p.relocate)jp.relocate=p.relocate;
+  if(p.workAuth)jp.workAuthorization=p.workAuth;
+  if(!Object.keys(jp).length)return;
+  const asJSON=JSON.stringify(jp);
+  if(asJSON===_syncedPrefsJSON)return;
+  _syncedPrefsJSON=asJSON;
+  try{
+    await fetch(`${FIREBASE}/userPreferences/${encodeURIComponent(key)}/jobPreferences.json`,
+      {method:'PATCH',headers:{'Content-Type':'application/json'},body:asJSON});
+  }catch(e){_syncedPrefsJSON=null;}
 }
 
 async function runResumeHealthCheck(text){
@@ -5692,6 +5728,7 @@ function openPrefs(){
   document.getElementById('pNotice').value=p.notice||'30';
   document.getElementById('pCurrentCTC').value=p.currentCTC||'';
   document.getElementById('pExpectedCTC').value=p.expectedCTC||'';
+  document.getElementById('pCurrentCity').value=p.currentCity||'';
   document.getElementById('pWorkMode').value=p.workMode||'any';
   document.getElementById('pRelocate').value=p.relocate||'yes';
   document.getElementById('pWorkAuth').value=p.workAuth||'indian_citizen';
@@ -5716,6 +5753,7 @@ function savePrefs(){
     notice:document.getElementById('pNotice').value,
     currentCTC:document.getElementById('pCurrentCTC').value,
     expectedCTC:document.getElementById('pExpectedCTC').value,
+    currentCity:document.getElementById('pCurrentCity').value.trim(),
     workMode:document.getElementById('pWorkMode').value,
     relocate:document.getElementById('pRelocate').value,
     workAuth:document.getElementById('pWorkAuth').value,
@@ -5726,7 +5764,7 @@ function savePrefs(){
     strengths:document.getElementById('pStrengths')?.value||'',
     salaryExpectation:document.getElementById('pSalaryExpectation')?.value||'',
   };
-  persist();closeModal('prefsModal');flash();
+  persist();syncPrefsToUserPreferences();closeModal('prefsModal');flash();
 }
 
 // ════════════════════════════════════════════════
